@@ -1,0 +1,10 @@
+name: GeneHub SOLIDEX
+type: module
+description: Defines SOLIDEX product entities for migrated external product data.
+package: Custom
+core_version_requirement: ^11
+dependencies:
+  - drupal:content_translation
+  - drupal:text
+  - drupal:user
+  - genehub:genehub

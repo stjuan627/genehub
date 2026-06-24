@@ -1,0 +1,5 @@
+entity.solidex_product.add_form:
+  route_name: entity.solidex_product.add_form
+  title: 'Add SOLIDEX product'
+  appears_on:
+    - entity.solidex_product.collection

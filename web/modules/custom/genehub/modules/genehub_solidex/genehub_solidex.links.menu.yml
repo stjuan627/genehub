@@ -1,0 +1,6 @@
+entity.solidex_product.collection:
+  title: 'SOLIDEX products'
+  description: 'Manage migrated SOLIDEX products.'
+  route_name: entity.solidex_product.collection
+  parent: system.admin_content
+  weight: 10

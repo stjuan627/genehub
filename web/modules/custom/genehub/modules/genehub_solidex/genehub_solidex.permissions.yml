@@ -1,0 +1,4 @@
+administer solidex products:
+  title: 'Administer SOLIDEX products'
+  description: 'Create, edit, delete, and translate SOLIDEX product entities.'
+  restrict access: true

@@ -1,0 +1,15 @@
+entity.solidex_product.canonical:
+  route_name: entity.solidex_product.canonical
+  base_route: entity.solidex_product.canonical
+  title: 'View'
+
+entity.solidex_product.edit_form:
+  route_name: entity.solidex_product.edit_form
+  base_route: entity.solidex_product.canonical
+  title: 'Edit'
+
+entity.solidex_product.delete_form:
+  route_name: entity.solidex_product.delete_form
+  base_route: entity.solidex_product.canonical
+  title: 'Delete'
+  weight: 10
