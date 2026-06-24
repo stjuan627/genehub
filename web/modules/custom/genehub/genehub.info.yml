@@ -1,0 +1,5 @@
+name: GeneHub
+type: module
+description: Provides shared GeneHub functionality.
+package: Custom
+core_version_requirement: ^11
