@@ -23,8 +23,10 @@
 
 ## 产品实体范式
 - 每个产品类型定义一个 bundleless content entity。
-- entity id 使用 `<product>_product`，例如 `solidex_product`。
+- entity id 使用 `product_<product>`，例如 `product_solidex`。
+- entity class 仍放在 `src/Entity/<Product>Product.php`，不要因为 entity id 前缀调整而改类名模式。
 - entity class 放在 `src/Entity/<Product>Product.php`。
+- `base_table` / `data_table`、entity route name、link template 参数占位符默认与 entity id 保持一致，例如 `product_solidex`、`product_solidex_field_data`、`entity.product_solidex.*`、`{product_solidex}`。
 - 不启用 revision：
   - 不设置 revision entity key。
   - 不定义 `revision_table` / `revision_data_table`。
@@ -72,6 +74,7 @@
   - 父模块在 `menu_name: content` 中提供 `genehub.navigation.products`。
   - 子模块在 `menu_name: content` 中提供 `<module>.navigation.products.<product>`，parent 使用 `genehub.navigation.products`。
   - 子模块在 `menu_name: content` 中提供 `<module>.navigation.create.<entity>`，parent 使用 `navigation.create`，route 指向 add-form。
+  - 上面的 `<entity>` 默认就是 `product_<product>`，不要再生成 `<product>_product`。
   - 不要把 Navigation 作为硬依赖；Navigation 禁用时这些 menu link 不应影响旧后台。
 - 子模块 local action：
   - Add action 至少出现在 `genehub.products_add` 和产品 collection 页。
@@ -108,6 +111,7 @@
   - `ddev drush route | grep -E 'genehub.products|entity.<entity_id>'`
 - 实体定义：
   - 用 `ddev drush php:eval` 检查 `isTranslatable()`、`isRevisionable()`、base table、data table、link templates。
+  - 同时确认 entity id、base table、data table、route name 前缀一致，例如 `product_solidex` / `product_solidex_field_data` / `entity.product_solidex.*`。
 - 实体 smoke test：
   - 创建一条最小实体，保存后确认 canonical URL，再删除测试实体。
 - Navigation 验证：

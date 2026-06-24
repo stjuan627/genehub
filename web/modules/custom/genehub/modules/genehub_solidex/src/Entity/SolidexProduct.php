@@ -25,7 +25,7 @@ use Drupal\user\EntityOwnerTrait;
  * Defines the SOLIDEX product entity class.
  */
 #[ContentEntityType(
-  id: 'solidex_product',
+  id: 'product_solidex',
   label: new TranslatableMarkup('SOLIDEX product'),
   label_collection: new TranslatableMarkup('SOLIDEX products'),
   label_singular: new TranslatableMarkup('SOLIDEX product'),
@@ -56,19 +56,19 @@ use Drupal\user\EntityOwnerTrait;
   links: [
     'collection' => '/admin/content/products/solidex',
     'add-form' => '/admin/content/products/add/solidex',
-    'canonical' => '/admin/content/products/solidex/{solidex_product}',
-    'edit-form' => '/admin/content/products/solidex/{solidex_product}/edit',
-    'delete-form' => '/admin/content/products/solidex/{solidex_product}/delete',
+    'canonical' => '/admin/content/products/solidex/{product_solidex}',
+    'edit-form' => '/admin/content/products/solidex/{product_solidex}/edit',
+    'delete-form' => '/admin/content/products/solidex/{product_solidex}/delete',
     'delete-multiple-form' => '/admin/content/products/solidex/delete-multiple',
-    'drupal:content-translation-overview' => '/admin/content/products/solidex/{solidex_product}/translations',
-    'drupal:content-translation-add' => '/admin/content/products/solidex/{solidex_product}/translations/add/{source}/{target}',
-    'drupal:content-translation-edit' => '/admin/content/products/solidex/{solidex_product}/translations/edit/{language}',
-    'drupal:content-translation-delete' => '/admin/content/products/solidex/{solidex_product}/translations/delete/{language}',
+    'drupal:content-translation-overview' => '/admin/content/products/solidex/{product_solidex}/translations',
+    'drupal:content-translation-add' => '/admin/content/products/solidex/{product_solidex}/translations/add/{source}/{target}',
+    'drupal:content-translation-edit' => '/admin/content/products/solidex/{product_solidex}/translations/edit/{language}',
+    'drupal:content-translation-delete' => '/admin/content/products/solidex/{product_solidex}/translations/delete/{language}',
   ],
   admin_permission: 'administer solidex products',
-  base_table: 'solidex_product',
-  data_table: 'solidex_product_field_data',
-  field_ui_base_route: 'entity.solidex_product.settings',
+  base_table: 'product_solidex',
+  data_table: 'product_solidex_field_data',
+  field_ui_base_route: 'entity.product_solidex.settings',
   translatable: TRUE,
 )]
 final class SolidexProduct extends ContentEntityBase implements EntityOwnerInterface {

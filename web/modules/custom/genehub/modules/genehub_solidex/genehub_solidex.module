@@ -12,9 +12,9 @@ declare(strict_types=1);
  */
 function genehub_solidex_gin_content_form_routes(): array {
   return [
-    'entity.solidex_product.add_form',
-    'entity.solidex_product.edit_form',
-    'entity.solidex_product.content_translation_add',
-    'entity.solidex_product.content_translation_edit',
+    'entity.product_solidex.add_form',
+    'entity.product_solidex.edit_form',
+    'entity.product_solidex.content_translation_add',
+    'entity.product_solidex.content_translation_edit',
   ];
 }

@@ -1,26 +1,26 @@
-entity.solidex_product.collection:
-  route_name: entity.solidex_product.collection
+entity.product_solidex.collection:
+  route_name: entity.product_solidex.collection
   base_route: genehub.products
   title: 'SOLIDEX'
 
-entity.solidex_product.settings:
-  route_name: entity.solidex_product.settings
-  base_route: entity.solidex_product.settings
+entity.product_solidex.settings:
+  route_name: entity.product_solidex.settings
+  base_route: entity.product_solidex.settings
   title: 'Settings'
   weight: 0
 
-entity.solidex_product.canonical:
-  route_name: entity.solidex_product.canonical
-  base_route: entity.solidex_product.canonical
+entity.product_solidex.canonical:
+  route_name: entity.product_solidex.canonical
+  base_route: entity.product_solidex.canonical
   title: 'View'
 
-entity.solidex_product.edit_form:
-  route_name: entity.solidex_product.edit_form
-  base_route: entity.solidex_product.canonical
+entity.product_solidex.edit_form:
+  route_name: entity.product_solidex.edit_form
+  base_route: entity.product_solidex.canonical
   title: 'Edit'
 
-entity.solidex_product.delete_form:
-  route_name: entity.solidex_product.delete_form
-  base_route: entity.solidex_product.canonical
+entity.product_solidex.delete_form:
+  route_name: entity.product_solidex.delete_form
+  base_route: entity.product_solidex.canonical
   title: 'Delete'
   weight: 10
