@@ -17,3 +17,13 @@ genehub.products_add:
     _permission: 'access content overview'
   options:
     _admin_route: TRUE
+
+genehub.products_settings:
+  path: '/admin/structure/products'
+  defaults:
+    _controller: '\Drupal\genehub\Controller\ProductController::settingsOverview'
+    _title: 'Product settings'
+  requirements:
+    _permission: 'administer site configuration'
+  options:
+    _admin_route: TRUE

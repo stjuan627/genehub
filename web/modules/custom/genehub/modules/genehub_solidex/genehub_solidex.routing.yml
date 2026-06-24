@@ -1,0 +1,9 @@
+entity.solidex_product.settings:
+  path: '/admin/structure/products/solidex/settings'
+  defaults:
+    _controller: '\Drupal\genehub_solidex\Controller\SolidexProductSettingsController::overview'
+    _title: 'SOLIDEX product settings'
+  requirements:
+    _permission: 'administer solidex products'
+  options:
+    _admin_route: TRUE

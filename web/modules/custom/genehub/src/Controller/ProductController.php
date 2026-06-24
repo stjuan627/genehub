@@ -29,4 +29,13 @@ final class ProductController extends ControllerBase {
     ];
   }
 
+  /**
+   * Builds the product entity type settings overview page.
+   */
+  public function settingsOverview(): array {
+    return [
+      '#markup' => $this->t('Select a product entity type to manage fields, form display, and display settings.'),
+    ];
+  }
+
 }

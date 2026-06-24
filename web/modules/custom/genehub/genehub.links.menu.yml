@@ -4,3 +4,24 @@ genehub.products:
   route_name: genehub.products
   parent: system.admin_content
   weight: 10
+
+genehub.products_settings:
+  title: 'Products'
+  description: 'Manage product entity types provided by GeneHub modules.'
+  route_name: genehub.products_settings
+  parent: system.admin_structure
+  weight: 10
+
+genehub.navigation.products:
+  title: 'Products'
+  description: 'Manage product entities provided by GeneHub modules.'
+  route_name: genehub.products
+  menu_name: content
+  weight: 20
+  options:
+    icon:
+      pack_id: navigation
+      icon_id: navigation-content
+      settings:
+        class: 'toolbar-button__icon'
+        size: 20

@@ -4,3 +4,26 @@ entity.solidex_product.collection:
   route_name: entity.solidex_product.collection
   parent: genehub.products
   weight: 10
+
+entity.solidex_product.settings:
+  title: 'SOLIDEX product settings'
+  description: 'Manage SOLIDEX product fields and display settings.'
+  route_name: entity.solidex_product.settings
+  parent: genehub.products_settings
+  weight: 11
+
+genehub_solidex.navigation.products.solidex:
+  title: 'SOLIDEX'
+  description: 'Manage migrated SOLIDEX products.'
+  route_name: entity.solidex_product.collection
+  menu_name: content
+  parent: genehub.navigation.products
+  weight: 10
+
+genehub_solidex.navigation.create.solidex_product:
+  title: 'SOLIDEX product'
+  description: 'Create a SOLIDEX product.'
+  route_name: entity.solidex_product.add_form
+  menu_name: content
+  parent: navigation.create
+  weight: 20

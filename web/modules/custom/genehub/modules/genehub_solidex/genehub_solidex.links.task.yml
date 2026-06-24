@@ -3,6 +3,12 @@ entity.solidex_product.collection:
   base_route: genehub.products
   title: 'SOLIDEX'
 
+entity.solidex_product.settings:
+  route_name: entity.solidex_product.settings
+  base_route: entity.solidex_product.settings
+  title: 'Settings'
+  weight: 0
+
 entity.solidex_product.canonical:
   route_name: entity.solidex_product.canonical
   base_route: entity.solidex_product.canonical

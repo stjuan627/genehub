@@ -11,6 +11,7 @@ use Drupal\Core\Entity\ContentEntityDeleteForm;
 use Drupal\Core\Entity\EntityAccessControlHandler;
 use Drupal\Core\Entity\EntityChangedTrait;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\EntityViewBuilder;
 use Drupal\Core\Entity\Form\DeleteMultipleForm;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\Field\BaseFieldDefinition;
@@ -40,6 +41,7 @@ use Drupal\user\EntityOwnerTrait;
   handlers: [
     'access' => EntityAccessControlHandler::class,
     'list_builder' => SolidexProductListBuilder::class,
+    'view_builder' => EntityViewBuilder::class,
     'form' => [
       'add' => SolidexProductForm::class,
       'edit' => SolidexProductForm::class,
@@ -66,6 +68,7 @@ use Drupal\user\EntityOwnerTrait;
   admin_permission: 'administer solidex products',
   base_table: 'solidex_product',
   data_table: 'solidex_product_field_data',
+  field_ui_base_route: 'entity.solidex_product.settings',
   translatable: TRUE,
 )]
 final class SolidexProduct extends ContentEntityBase implements EntityOwnerInterface {
@@ -152,6 +155,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
         'type' => 'basic_string',
         'weight' => 35,
       ])
+      ->setDisplayConfigurable('view', TRUE)
       ->setDisplayOptions('form', [
         'type' => 'string_textarea',
         'weight' => 35,
@@ -183,6 +187,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
         'type' => 'string',
         'weight' => $weight,
       ])
+      ->setDisplayConfigurable('view', TRUE)
       ->setDisplayOptions('form', [
         'type' => 'string_textfield',
         'weight' => $weight,
@@ -203,6 +208,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
         'type' => 'basic_string',
         'weight' => $weight,
       ])
+      ->setDisplayConfigurable('view', TRUE)
       ->setDisplayOptions('form', [
         'type' => 'string_textarea',
         'weight' => $weight,
@@ -226,6 +232,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
         'type' => 'text_default',
         'weight' => $weight,
       ])
+      ->setDisplayConfigurable('view', TRUE)
       ->setDisplayOptions('form', [
         'type' => 'text_textarea',
         'weight' => $weight,
