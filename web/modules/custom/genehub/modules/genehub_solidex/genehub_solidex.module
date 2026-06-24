@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * @file
+ * Provides integration hooks for the GeneHub SOLIDEX module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_gin_content_form_routes().
+ */
+function genehub_solidex_gin_content_form_routes(): array {
+  return [
+    'entity.solidex_product.add_form',
+    'entity.solidex_product.edit_form',
+    'entity.solidex_product.content_translation_add',
+    'entity.solidex_product.content_translation_edit',
+  ];
+}

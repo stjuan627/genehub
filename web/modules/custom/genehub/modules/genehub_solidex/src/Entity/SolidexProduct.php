@@ -16,6 +16,7 @@ use Drupal\Core\Entity\Form\DeleteMultipleForm;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\genehub_solidex\Form\SolidexProductForm;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\user\EntityOwnerTrait;
 
@@ -40,8 +41,8 @@ use Drupal\user\EntityOwnerTrait;
     'access' => EntityAccessControlHandler::class,
     'list_builder' => EntityListBuilder::class,
     'form' => [
-      'add' => 'Drupal\Core\Entity\ContentEntityForm',
-      'edit' => 'Drupal\Core\Entity\ContentEntityForm',
+      'add' => SolidexProductForm::class,
+      'edit' => SolidexProductForm::class,
       'delete' => ContentEntityDeleteForm::class,
       'delete-multiple-confirm' => DeleteMultipleForm::class,
     ],
@@ -107,7 +108,11 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Created'))
       ->setDescription(t('The time that the SOLIDEX product was created.'))
-      ->setTranslatable(FALSE);
+      ->setTranslatable(FALSE)
+      ->setDisplayOptions('form', [
+        'type' => 'datetime_timestamp',
+        'weight' => 10,
+      ]);
 
     $fields['changed'] = BaseFieldDefinition::create('changed')
       ->setLabel(t('Changed'))
