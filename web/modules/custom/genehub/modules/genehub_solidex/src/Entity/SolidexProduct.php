@@ -10,13 +10,13 @@ use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\ContentEntityDeleteForm;
 use Drupal\Core\Entity\EntityAccessControlHandler;
 use Drupal\Core\Entity\EntityChangedTrait;
-use Drupal\Core\Entity\EntityListBuilder;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\Form\DeleteMultipleForm;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\genehub_solidex\Form\SolidexProductForm;
+use Drupal\genehub_solidex\SolidexProductListBuilder;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\user\EntityOwnerTrait;
 
@@ -39,7 +39,7 @@ use Drupal\user\EntityOwnerTrait;
   ],
   handlers: [
     'access' => EntityAccessControlHandler::class,
-    'list_builder' => EntityListBuilder::class,
+    'list_builder' => SolidexProductListBuilder::class,
     'form' => [
       'add' => SolidexProductForm::class,
       'edit' => SolidexProductForm::class,
@@ -93,7 +93,8 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
           'size' => 60,
           'placeholder' => '',
         ],
-      ]);
+      ])
+      ->setDisplayConfigurable('form', TRUE);
 
     $fields['status'] = BaseFieldDefinition::create('boolean')
       ->setLabel(t('Published'))
@@ -103,7 +104,8 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setDisplayOptions('form', [
         'type' => 'boolean_checkbox',
         'weight' => 95,
-      ]);
+      ])
+      ->setDisplayConfigurable('form', TRUE);
 
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Created'))
@@ -112,7 +114,8 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setDisplayOptions('form', [
         'type' => 'datetime_timestamp',
         'weight' => 10,
-      ]);
+      ])
+      ->setDisplayConfigurable('form', TRUE);
 
     $fields['changed'] = BaseFieldDefinition::create('changed')
       ->setLabel(t('Changed'))
@@ -126,9 +129,9 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
     $fields['biomarker_cat_id'] = static::stringField(t('Biomarker category ID'), FALSE, FALSE, -35);
     $fields['cell_type'] = static::stringField(t('Cell type'), FALSE, FALSE, -30);
     $fields['isolation_method'] = static::stringField(t('Isolation method'), FALSE, FALSE, -25);
-    $fields['description'] = static::formattedLongTextField(t('Description'), TRUE, TRUE, -20);
+    $fields['description'] = static::formattedLongTextField(t('Description'), FALSE, TRUE, -20);
     $fields['brief_description'] = static::formattedLongTextField(t('Brief description'), FALSE, TRUE, -15);
-    $fields['application'] = static::formattedLongTextField(t('Application'), TRUE, TRUE, -10);
+    $fields['application'] = static::formattedLongTextField(t('Application'), FALSE, TRUE, -10);
     $fields['application_detail'] = static::formattedLongTextField(t('Application detail'), FALSE, TRUE, -5);
     $fields['labeling_type'] = static::stringField(t('Labeling type'), FALSE, FALSE, 0);
     $fields['bead_type'] = static::stringField(t('Bead type'), FALSE, FALSE, 5);
@@ -155,7 +158,8 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
         'settings' => [
           'rows' => 3,
         ],
-      ]);
+      ])
+      ->setDisplayConfigurable('form', TRUE);
 
     $fields['validation_data'] = static::formattedLongTextField(t('Validation data'), FALSE, TRUE, 40);
     $fields['protocol'] = static::formattedLongTextField(t('Protocol'), FALSE, TRUE, 45);
@@ -182,7 +186,8 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setDisplayOptions('form', [
         'type' => 'string_textfield',
         'weight' => $weight,
-      ]);
+      ])
+      ->setDisplayConfigurable('form', TRUE);
   }
 
   /**
@@ -204,7 +209,8 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
         'settings' => [
           'rows' => 3,
         ],
-      ]);
+      ])
+      ->setDisplayConfigurable('form', TRUE);
   }
 
   /**
@@ -226,7 +232,8 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
         'settings' => [
           'rows' => 5,
         ],
-      ]);
+      ])
+      ->setDisplayConfigurable('form', TRUE);
   }
 
 }
