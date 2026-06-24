@@ -1,3 +1,8 @@
+entity.solidex_product.collection:
+  route_name: entity.solidex_product.collection
+  base_route: genehub.products
+  title: 'SOLIDEX'
+
 entity.solidex_product.canonical:
   route_name: entity.solidex_product.canonical
   base_route: entity.solidex_product.canonical

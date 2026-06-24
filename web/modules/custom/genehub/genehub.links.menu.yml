@@ -1,0 +1,6 @@
+genehub.products:
+  title: 'Products'
+  description: 'Manage product entities provided by GeneHub modules.'
+  route_name: genehub.products
+  parent: system.admin_content
+  weight: 10

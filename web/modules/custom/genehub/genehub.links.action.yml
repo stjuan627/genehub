@@ -1,0 +1,5 @@
+genehub.products_add:
+  route_name: genehub.products_add
+  title: 'Add product'
+  appears_on:
+    - genehub.products

@@ -1,0 +1,19 @@
+genehub.products:
+  path: '/admin/content/products'
+  defaults:
+    _controller: '\Drupal\genehub\Controller\ProductController::overview'
+    _title: 'Products'
+  requirements:
+    _permission: 'access content overview'
+  options:
+    _admin_route: TRUE
+
+genehub.products_add:
+  path: '/admin/content/products/add'
+  defaults:
+    _controller: '\Drupal\genehub\Controller\ProductController::addOverview'
+    _title: 'Add product'
+  requirements:
+    _permission: 'access content overview'
+  options:
+    _admin_route: TRUE

@@ -2,4 +2,5 @@ entity.solidex_product.add_form:
   route_name: entity.solidex_product.add_form
   title: 'Add SOLIDEX product'
   appears_on:
+    - genehub.products_add
     - entity.solidex_product.collection

@@ -1,0 +1,4 @@
+genehub.products:
+  route_name: genehub.products
+  base_route: genehub.products
+  title: 'Overview'
