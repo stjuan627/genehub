@@ -2,6 +2,7 @@
 
 ## 通用约定
 - 始终用中文沟通。
+- 提交 git commit 信息时使用 Conventional Commits 规范。
 - 这是 Drupal 11 项目。执行 PHP/Drush/PHPCS 时优先用 DDEV 容器内命令，例如 `ddev php`、`ddev drush`、`ddev exec vendor/bin/phpcs`；不要依赖宿主机 PHP 版本。
 - 新增或修改自定义模块时，默认落在 `web/modules/custom/genehub` 及其子模块目录内。
 - 不要把新产品类型直接塞进父模块。父模块只提供 GeneHub 级聚合入口；每个产品类型使用独立子模块。
