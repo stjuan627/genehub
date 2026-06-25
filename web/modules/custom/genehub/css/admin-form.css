@@ -1,0 +1,4 @@
+.genehub-sticky-vertical-tabs .vertical-tabs__menu {
+  position: sticky;
+  top: calc(1rem + var(--admin-toolbar-top-bar-height, 0px));
+}

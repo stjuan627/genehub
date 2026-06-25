@@ -48,6 +48,8 @@ final class SolidexProductForm extends ContentEntityForm {
     $form = parent::form($form, $form_state);
 
     $product = $this->entity;
+    $form['#attached']['library'][] = 'genehub/admin_form';
+    $form['#attributes']['class'][] = 'genehub-sticky-vertical-tabs';
 
     $form['advanced']['#attributes']['class'][] = 'entity-meta';
 
@@ -81,28 +83,103 @@ final class SolidexProductForm extends ContentEntityForm {
       '#markup' => $product->getOwner()?->getDisplayName() ?? $this->t('Unknown'),
       '#wrapper_attributes' => ['class' => ['entity-meta__author']],
     ];
+    if (isset($form['status'])) {
+      $form['status']['#group'] = 'meta';
+    }
 
-    $form['catalog'] = [
+    $form['content_tabs'] = [
+      '#type' => 'vertical_tabs',
+      '#weight' => -20,
+    ];
+
+    $form['overview'] = [
       '#type' => 'details',
-      '#title' => $this->t('Catalog information'),
-      '#group' => 'advanced',
+      '#title' => $this->t('Overview'),
+      '#group' => 'content_tabs',
+      '#weight' => 0,
+      '#optional' => TRUE,
+    ];
+    foreach (['product_name', 'cat_no', 'biomarker_cat_id', 'products_link'] as $field_name) {
+      if (isset($form[$field_name])) {
+        $form[$field_name]['#group'] = 'overview';
+      }
+    }
+
+    $form['specifications'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Specifications'),
+      '#group' => 'content_tabs',
       '#weight' => 10,
       '#optional' => TRUE,
     ];
-    foreach (['cat_no', 'products_link', 'biomarker_cat_id'] as $field_name) {
+    foreach ([
+      'cell_type',
+      'isolation_method',
+      'labeling_type',
+      'bead_type',
+      'format',
+      'size',
+      'units',
+      'cell_population',
+      'components',
+    ] as $field_name) {
       if (isset($form[$field_name])) {
-        $form[$field_name]['#group'] = 'catalog';
+        $form[$field_name]['#group'] = 'specifications';
       }
     }
 
     $form['sales_options'] = [
       '#type' => 'details',
       '#title' => $this->t('Sales options'),
+      '#group' => 'content_tabs',
       '#weight' => 20,
-      '#open' => TRUE,
+      '#optional' => TRUE,
     ];
     if (isset($form['sales_units'])) {
       $form['sales_units']['#group'] = 'sales_options';
+    }
+
+    $form['content'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Content'),
+      '#group' => 'content_tabs',
+      '#weight' => 30,
+      '#optional' => TRUE,
+    ];
+    foreach ([
+      'description',
+      'brief_description',
+      'application',
+      'application_detail',
+      'key_feature',
+      'protocol',
+      'background',
+    ] as $field_name) {
+      if (isset($form[$field_name])) {
+        $form[$field_name]['#group'] = 'content';
+      }
+    }
+
+    $form['validation'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Validation data'),
+      '#group' => 'content_tabs',
+      '#weight' => 40,
+      '#optional' => TRUE,
+    ];
+    if (isset($form['validation_data'])) {
+      $form['validation_data']['#group'] = 'validation';
+    }
+
+    $form['faq_tab'] = [
+      '#type' => 'details',
+      '#title' => $this->t('FAQ'),
+      '#group' => 'content_tabs',
+      '#weight' => 50,
+      '#optional' => TRUE,
+    ];
+    if (isset($form['faq'])) {
+      $form['faq']['#group'] = 'faq_tab';
     }
 
     $form['author'] = [

@@ -84,7 +84,6 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
 
     $fields['uid'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('Owner'))
-      ->setDescription(t('The user ID of the SOLIDEX product owner.'))
       ->setSetting('target_type', 'user')
       ->setDefaultValueCallback(static::class . '::getDefaultEntityOwner')
       ->setTranslatable(FALSE)
@@ -101,7 +100,6 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
 
     $fields['status'] = BaseFieldDefinition::create('boolean')
       ->setLabel(t('Published'))
-      ->setDescription(t('Whether the SOLIDEX product is published.'))
       ->setDefaultValue(TRUE)
       ->setTranslatable(FALSE)
       ->setDisplayOptions('form', [
@@ -112,7 +110,6 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
 
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Created'))
-      ->setDescription(t('The time that the SOLIDEX product was created.'))
       ->setTranslatable(FALSE)
       ->setDisplayOptions('form', [
         'type' => 'datetime_timestamp',
@@ -122,7 +119,6 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
 
     $fields['changed'] = BaseFieldDefinition::create('changed')
       ->setLabel(t('Changed'))
-      ->setDescription(t('The time that the SOLIDEX product was last edited.'))
       ->setTranslatable(FALSE);
 
     $fields['product_name'] = static::stringField(t('Product name'), TRUE, TRUE, -50)
@@ -163,7 +159,6 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
 
     $fields['components'] = BaseFieldDefinition::create('string_long')
       ->setLabel(t('Components'))
-      ->setDescription(t('Component values migrated from non-empty Component1 through Component4 columns.'))
       ->setCardinality(BaseFieldDefinition::CARDINALITY_UNLIMITED)
       ->setRequired(FALSE)
       ->setTranslatable(FALSE)
@@ -244,6 +239,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setLabel($label)
       ->setRequired($required)
       ->setTranslatable($translatable)
+      ->setSetting('allowed_formats', ['full_html'])
       ->setDisplayOptions('view', [
         'label' => 'above',
         'type' => 'text_default',
