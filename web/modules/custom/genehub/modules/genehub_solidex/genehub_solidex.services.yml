@@ -1,0 +1,5 @@
+services:
+  genehub_solidex.route_subscriber:
+    class: Drupal\genehub_solidex\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber }
