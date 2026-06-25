@@ -142,6 +142,23 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
     $fields['key_feature'] = static::formattedLongTextField(t('Key feature'), FALSE, TRUE, 15);
     $fields['size'] = static::stringField(t('Size'), FALSE, FALSE, 20);
     $fields['units'] = static::stringField(t('Units'), FALSE, FALSE, 25);
+    $fields['sales_units'] = BaseFieldDefinition::create('genehub_sales_unit')
+      ->setLabel(t('Sales options'))
+      ->setDescription(t('Available sales units for this product.'))
+      ->setCardinality(BaseFieldDefinition::CARDINALITY_UNLIMITED)
+      ->setRequired(FALSE)
+      ->setTranslatable(TRUE)
+      ->setDisplayOptions('view', [
+        'label' => 'above',
+        'type' => 'genehub_sales_unit_default',
+        'weight' => 27,
+      ])
+      ->setDisplayConfigurable('view', TRUE)
+      ->setDisplayOptions('form', [
+        'type' => 'genehub_sales_unit_default',
+        'weight' => 27,
+      ])
+      ->setDisplayConfigurable('form', TRUE);
     $fields['cell_population'] = static::stringField(t('Cell population'), FALSE, FALSE, 30);
 
     $fields['components'] = BaseFieldDefinition::create('string_long')

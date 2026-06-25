@@ -95,6 +95,16 @@ final class SolidexProductForm extends ContentEntityForm {
       }
     }
 
+    $form['sales_options'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Sales options'),
+      '#weight' => 20,
+      '#open' => TRUE,
+    ];
+    if (isset($form['sales_units'])) {
+      $form['sales_units']['#group'] = 'sales_options';
+    }
+
     $form['author'] = [
       '#type' => 'details',
       '#title' => $this->t('Authoring information'),
