@@ -2,3 +2,26 @@
   position: sticky;
   top: calc(1rem + var(--admin-toolbar-top-bar-height, 0px));
 }
+
+.tabs a.genehub-language-local-task {
+  background: transparent !important;
+  border: 1px solid transparent;
+  font-size: 14px;
+}
+
+.tabs .genehub-language-local-task-spacer {
+  flex: 1 1 auto;
+  pointer-events: none;
+}
+
+.tabs a.genehub-language-local-task.is-active {
+  color: var(--gin-color-primary, #003ecc);
+  border-color: currentColor;
+  border-radius: 999px;
+}
+
+.tabs a.genehub-language-local-task:hover,
+.tabs a.genehub-language-local-task:focus {
+  color: var(--gin-color-primary-hover, var(--gin-color-primary, #003ecc));
+  background: transparent !important;
+}

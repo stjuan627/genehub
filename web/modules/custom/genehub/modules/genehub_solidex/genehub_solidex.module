@@ -7,6 +7,10 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Language\LanguageInterface;
+
 /**
  * Implements hook_gin_content_form_routes().
  */
@@ -17,4 +21,134 @@ function genehub_solidex_gin_content_form_routes(): array {
     'entity.product_solidex.content_translation_add',
     'entity.product_solidex.content_translation_edit',
   ];
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function genehub_solidex_page_attachments(array &$attachments): void {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  if (is_string($route_name) && str_starts_with($route_name, 'entity.product_solidex.')) {
+    $attachments['#attached']['library'][] = 'genehub/admin_form';
+  }
+}
+
+/**
+ * Implements hook_menu_local_tasks_alter().
+ */
+function genehub_solidex_menu_local_tasks_alter(&$data, $route_name, RefinableCacheableDependencyInterface &$cacheability): void {
+  if (!is_string($route_name) || !str_starts_with($route_name, 'entity.product_solidex.')) {
+    return;
+  }
+
+  $product = _genehub_solidex_route_product();
+  if (!$product || $product->isNew() || !$product->access('update')) {
+    return;
+  }
+
+  $languages = \Drupal::languageManager()->getLanguages();
+  if (count($languages) < 2) {
+    return;
+  }
+
+  $stored_product = \Drupal::entityTypeManager()
+    ->getStorage($product->getEntityTypeId())
+    ->load($product->id());
+  if (!$stored_product instanceof ContentEntityInterface) {
+    return;
+  }
+
+  $translations = $stored_product->getTranslationLanguages();
+  $current_langcode = _genehub_solidex_current_form_langcode($stored_product);
+  $source_langcode = _genehub_solidex_source_langcode($translations, $current_langcode, $stored_product->getUntranslated()->language()->getId());
+  $weight = 1000;
+
+  $data['tabs'][0]['genehub_solidex.language_spacer'] = [
+    '#markup' => '<li class="tabs__tab genehub-language-local-task-spacer" aria-hidden="true"></li>',
+    '#weight' => $weight++,
+  ];
+
+  foreach ($languages as $langcode => $language) {
+    $translated = isset($translations[$langcode]);
+    $active = $langcode === $current_langcode;
+    $url = $translated
+      ? $stored_product->toUrl('edit-form', ['language' => $language])
+      : $stored_product->toUrl('drupal:content-translation-add', ['language' => $language])
+        ->setRouteParameter('source', $source_langcode)
+        ->setRouteParameter('target', $langcode);
+
+    $data['tabs'][0]['genehub_solidex.language.' . $langcode] = [
+      '#theme' => 'menu_local_task',
+      '#link' => [
+        'title' => ($translated ? '' : '+') . strtoupper($langcode),
+        'url' => $url,
+        'localized_options' => [
+          'attributes' => [
+            'class' => [
+              'genehub-language-local-task',
+              $active ? 'is-active' : 'is-inactive',
+            ],
+            'title' => $translated
+              ? t('Edit @language translation', ['@language' => $language->getName()])
+              : t('Add @language translation', ['@language' => $language->getName()]),
+          ],
+        ],
+      ],
+      '#weight' => $weight++,
+      '#active' => $active,
+    ];
+  }
+
+  $cacheability->addCacheableDependency($stored_product);
+  $cacheability->addCacheContexts([
+    'route',
+    'user.permissions',
+  ]);
+  $cacheability->addCacheTags(['config:configurable_language_list']);
+}
+
+/**
+ * Gets the SOLIDEX product from the current route.
+ */
+function _genehub_solidex_route_product(): ?ContentEntityInterface {
+  $product = \Drupal::routeMatch()->getParameter('product_solidex');
+  return $product instanceof ContentEntityInterface ? $product : NULL;
+}
+
+/**
+ * Resolves the active form language from route parameters.
+ */
+function _genehub_solidex_current_form_langcode(ContentEntityInterface $product): string {
+  $route_match = \Drupal::routeMatch();
+  foreach (['target', 'language'] as $parameter_name) {
+    $language = $route_match->getParameter($parameter_name);
+    if ($language instanceof LanguageInterface) {
+      return $language->getId();
+    }
+  }
+
+  $content_langcode = \Drupal::languageManager()
+    ->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)
+    ->getId();
+  if ($product->hasTranslation($content_langcode)) {
+    return $content_langcode;
+  }
+
+  return $product->language()->getId();
+}
+
+/**
+ * Resolves the source language for new translation tabs.
+ */
+function _genehub_solidex_source_langcode(array $translations, string $current_langcode, string $default_langcode): string {
+  $source = \Drupal::routeMatch()->getParameter('source');
+  if ($source instanceof LanguageInterface && isset($translations[$source->getId()])) {
+    return $source->getId();
+  }
+
+  if (isset($translations[$current_langcode])) {
+    return $current_langcode;
+  }
+
+  return $default_langcode;
 }
