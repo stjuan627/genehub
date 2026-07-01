@@ -7,9 +7,13 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\jsonapi\JsonApiFilter;
 
 /**
  * Implements hook_gin_content_form_routes().
@@ -28,7 +32,14 @@ function genehub_solidex_gin_content_form_routes(): array {
  */
 function genehub_solidex_page_attachments(array &$attachments): void {
   $route_name = \Drupal::routeMatch()->getRouteName();
-  if (is_string($route_name) && str_starts_with($route_name, 'entity.product_solidex.')) {
+  $admin_form_routes = [
+    'entity.product_solidex.add_form',
+    'entity.product_solidex.edit_form',
+    'entity.product_solidex.content_translation_add',
+    'entity.product_solidex.content_translation_edit',
+  ];
+
+  if (is_string($route_name) && in_array($route_name, $admin_form_routes, TRUE)) {
     $attachments['#attached']['library'][] = 'genehub/admin_form';
   }
 }
@@ -151,4 +162,22 @@ function _genehub_solidex_source_langcode(array $translations, string $current_l
   }
 
   return $default_langcode;
+}
+
+/**
+ * Implements hook_jsonapi_product_solidex_filter_access().
+ */
+function genehub_solidex_jsonapi_product_solidex_filter_access(EntityTypeInterface $entity_type, AccountInterface $account): array {
+  $published_access = AccessResult::allowedIfHasPermission($account, 'access content')
+    ->addCacheableDependency($entity_type)
+    ->cachePerPermissions();
+
+  $admin_access = AccessResult::allowedIfHasPermission($account, 'administer solidex products')
+    ->addCacheableDependency($entity_type)
+    ->cachePerPermissions();
+
+  return [
+    JsonApiFilter::AMONG_PUBLISHED => $published_access->orIf($admin_access),
+    JsonApiFilter::AMONG_ALL => $admin_access,
+  ];
 }

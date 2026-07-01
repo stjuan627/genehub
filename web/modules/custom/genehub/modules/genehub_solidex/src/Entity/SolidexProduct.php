@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Drupal\genehub_solidex\Entity;
 
 use Drupal\content_translation\ContentTranslationHandler;
+use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\Attribute\ContentEntityType;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\ContentEntityDeleteForm;
-use Drupal\Core\Entity\EntityAccessControlHandler;
 use Drupal\Core\Entity\EntityChangedTrait;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityViewBuilder;
@@ -16,6 +16,7 @@ use Drupal\Core\Entity\Form\DeleteMultipleForm;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\genehub_solidex\SolidexProductAccessControlHandler;
 use Drupal\genehub_solidex\Form\SolidexProductForm;
 use Drupal\genehub_solidex\SolidexProductListBuilder;
 use Drupal\user\EntityOwnerInterface;
@@ -39,7 +40,7 @@ use Drupal\user\EntityOwnerTrait;
     'published' => 'status',
   ],
   handlers: [
-    'access' => EntityAccessControlHandler::class,
+    'access' => SolidexProductAccessControlHandler::class,
     'list_builder' => SolidexProductListBuilder::class,
     'view_builder' => EntityViewBuilder::class,
     'form' => [
@@ -56,7 +57,7 @@ use Drupal\user\EntityOwnerTrait;
   links: [
     'collection' => '/admin/content/products/solidex',
     'add-form' => '/admin/content/products/add/solidex',
-    'canonical' => '/admin/content/products/solidex/{product_solidex}',
+    'canonical' => '/genehub/solidex/{product_solidex}',
     'edit-form' => '/admin/content/products/solidex/{product_solidex}/edit',
     'delete-form' => '/admin/content/products/solidex/{product_solidex}/delete',
     'delete-multiple-form' => '/admin/content/products/solidex/delete-multiple',
@@ -71,7 +72,7 @@ use Drupal\user\EntityOwnerTrait;
   field_ui_base_route: 'entity.product_solidex.settings',
   translatable: TRUE,
 )]
-final class SolidexProduct extends ContentEntityBase implements EntityOwnerInterface {
+final class SolidexProduct extends ContentEntityBase implements EntityOwnerInterface, EntityPublishedInterface {
 
   use EntityChangedTrait;
   use EntityOwnerTrait;
@@ -254,6 +255,29 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
         ],
       ])
       ->setDisplayConfigurable('form', TRUE);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isPublished(): bool {
+    return (bool) $this->getEntityKey('published');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setPublished(): static {
+    $this->set($this->getEntityType()->getKey('published'), TRUE);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setUnpublished(): static {
+    $this->set($this->getEntityType()->getKey('published'), FALSE);
+    return $this;
   }
 
 }

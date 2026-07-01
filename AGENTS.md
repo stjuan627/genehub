@@ -20,6 +20,7 @@
 - 子模块职责：
   - 定义对应产品 content entity。
   - 定义产品自己的权限、列表、表单、菜单、actions、local tasks。
+  - 定义产品自己的访问控制策略，包括 entity access 与 JSON:API filter access。
   - 自己挂接到父模块的 products UI 和 Navigation UI。
 
 ## 产品实体范式
@@ -39,6 +40,8 @@
   - 必须使用 `ContentTranslationHandler` 或确保 Content Translation 可识别。
   - 必须提供或允许生成 `drupal:content-translation-*` link templates。
 - 多值 base field 会生成 dedicated field table，这是接受的 Drupal 原生行为；不要为了“单表”牺牲字段语义。
+- 如果产品实体需要“已发布可匿名查看”，子模块必须实现该 entity 自己的访问控制规则，不要只依赖 `admin_permission`。
+- 如果产品实体需要支持 JSON:API collection filter，子模块必须实现该 entity type 自己的 `hook_jsonapi_<entity_type>_filter_access()`。
 
 ## 字段范式
 - 外部表迁移字段优先用 Drupal base fields 定义，除非明确需要 Field UI 配置字段。
@@ -57,12 +60,13 @@
   - `genehub.products_add` -> `/admin/content/products/add`
   - `genehub.products_settings` -> `/admin/structure/products`
 - 路径分层规则：
-  - 内容实体管理、添加、查看、编辑、删除、翻译都使用 `/admin/content/products` 命名空间。
+  - 内容实体后台管理、添加、编辑、删除、翻译使用 `/admin/content/products` 命名空间。
+  - 面向前台公开访问的 canonical/view route 不使用 `/admin` 命名空间，应使用独立公开路径，例如 `/genehub/<product>/{<entity_id>}`。
   - Entity type 管理、Field UI、Manage fields、Manage form display、Manage display 都使用 `/admin/structure/products` 命名空间。
 - 产品子模块 route/link template 使用父路径命名空间：
   - collection：`/admin/content/products/<product>`
   - add-form：`/admin/content/products/add/<product>`
-  - canonical：`/admin/content/products/<product>/{<entity_id>}`
+  - canonical：默认使用公开路径，例如 `/genehub/<product>/{<entity_id>}`
   - edit-form：`/admin/content/products/<product>/{<entity_id>}/edit`
   - delete-form：`/admin/content/products/<product>/{<entity_id>}/delete`
   - translations：`/admin/content/products/<product>/{<entity_id>}/translations`
