@@ -1,0 +1,7 @@
+{
+    "patches": {
+        "drupal/tmgmt": {
+            "Issue #3198609: Skip request_translation during checkout redirect to avoid duplicate submit": "patches/tmgmt-3198609-skip-request-translation-during-checkout.patch"
+        }
+    }
+}

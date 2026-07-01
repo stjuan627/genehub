@@ -1,0 +1,7 @@
+services:
+  genehub.ai_openai_compatible_params_default_subscriber:
+    class: Drupal\genehub\EventSubscriber\OpenAiCompatibleParamsDefaultSubscriber
+    arguments:
+      - '@config.factory'
+    tags:
+      - { name: event_subscriber }

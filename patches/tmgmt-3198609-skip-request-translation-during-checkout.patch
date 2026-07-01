@@ -1,0 +1,13 @@
+diff --git a/src/JobCheckoutManager.php b/src/JobCheckoutManager.php
+index a06c2de..8b26053 100644
+--- a/src/JobCheckoutManager.php
++++ b/src/JobCheckoutManager.php
+@@ -66,7 +66,7 @@ class JobCheckoutManager {
+    * @ingroup tmgmt_job
+    */
+   public function checkoutAndRedirect(FormStateInterface $form_state, array $jobs) {
+-    $checkout_jobs = $this->checkoutMultiple($jobs);
++    $checkout_jobs = $this->checkoutMultiple($jobs, TRUE);
+ 
+     $jobs_ready_for_checkout = array_udiff($jobs, $checkout_jobs, function (JobInterface $a, JobInterface $b) {
+       if ($a->id() < $b->id()) {
