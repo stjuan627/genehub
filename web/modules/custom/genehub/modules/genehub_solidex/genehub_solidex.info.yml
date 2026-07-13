@@ -5,6 +5,8 @@ package: Custom
 core_version_requirement: ^11
 dependencies:
   - drupal:content_translation
+  - drupal:file
+  - drupal:image
   - drupal:text
   - drupal:user
   - genehub:genehub

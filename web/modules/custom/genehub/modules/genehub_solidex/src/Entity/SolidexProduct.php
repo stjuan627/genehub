@@ -126,6 +126,40 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setDescription(t('The product name used as the entity label.'));
     $fields['cat_no'] = static::stringField(t('Catalog number'), TRUE, FALSE, -45);
     $fields['products_link'] = static::plainLongTextField(t('Products link'), FALSE, FALSE, -40);
+    $fields['image'] = BaseFieldDefinition::create('image')
+      ->setLabel(t('Image'))
+      ->setDescription(t('The primary product image.'))
+      ->setRequired(FALSE)
+      ->setTranslatable(TRUE)
+      ->setSetting('uri_scheme', 'public')
+      ->setSetting('file_directory', 'genehub/products/solidex/images')
+      ->setSetting('file_extensions', 'png jpg jpeg webp')
+      ->setSetting('alt_field', TRUE)
+      ->setSetting('alt_field_required', TRUE)
+      ->setSetting('title_field', FALSE)
+      ->setDisplayOptions('view', [
+        'label' => 'above',
+        'type' => 'image',
+        'weight' => -38,
+      ])
+      ->setDisplayConfigurable('view', TRUE)
+      ->setDisplayOptions('form', [
+        'type' => 'image_image',
+        'weight' => -38,
+      ])
+      ->setDisplayConfigurable('form', TRUE);
+    $fields['msds'] = static::pdfField(
+      t('MSDS'),
+      t('The product material safety data sheet.'),
+      'genehub/products/solidex/documents/msds',
+      -37,
+    );
+    $fields['user_manual'] = static::pdfField(
+      t('User manual'),
+      t('The product user manual.'),
+      'genehub/products/solidex/documents/manuals',
+      -36,
+    );
     $fields['biomarker_cat_id'] = static::stringField(t('Biomarker category ID'), FALSE, FALSE, -35);
     $fields['cell_type'] = static::stringField(t('Cell type'), FALSE, FALSE, -30);
     $fields['isolation_method'] = static::stringField(t('Isolation method'), FALSE, FALSE, -25);
@@ -253,6 +287,31 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
         'settings' => [
           'rows' => 5,
         ],
+      ])
+      ->setDisplayConfigurable('form', TRUE);
+  }
+
+  /**
+   * Creates a translatable single-value PDF base field.
+   */
+  private static function pdfField(TranslatableMarkup $label, TranslatableMarkup $description, string $directory, int $weight): BaseFieldDefinition {
+    return BaseFieldDefinition::create('file')
+      ->setLabel($label)
+      ->setDescription($description)
+      ->setRequired(FALSE)
+      ->setTranslatable(TRUE)
+      ->setSetting('uri_scheme', 'public')
+      ->setSetting('file_directory', $directory)
+      ->setSetting('file_extensions', 'pdf')
+      ->setDisplayOptions('view', [
+        'label' => 'above',
+        'type' => 'file_default',
+        'weight' => $weight,
+      ])
+      ->setDisplayConfigurable('view', TRUE)
+      ->setDisplayOptions('form', [
+        'type' => 'file_generic',
+        'weight' => $weight,
       ])
       ->setDisplayConfigurable('form', TRUE);
   }

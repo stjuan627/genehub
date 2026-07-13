@@ -105,6 +105,19 @@ final class SolidexProductForm extends ContentEntityForm {
       }
     }
 
+    $form['media'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Media and documents'),
+      '#group' => 'content_tabs',
+      '#weight' => 5,
+      '#optional' => TRUE,
+    ];
+    foreach (['image', 'msds', 'user_manual'] as $field_name) {
+      if (isset($form[$field_name])) {
+        $form[$field_name]['#group'] = 'media';
+      }
+    }
+
     $form['specifications'] = [
       '#type' => 'details',
       '#title' => $this->t('Specifications'),

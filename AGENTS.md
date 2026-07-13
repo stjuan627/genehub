@@ -45,6 +45,9 @@
 
 ## 字段范式
 - 外部表迁移字段优先用 Drupal base fields 定义，除非明确需要 Field UI 配置字段。
+- GeneHub 上传文件统一使用 `public` scheme，并存放在 `public://genehub` 根目录下。
+- 文件字段的 `file_directory` 只填写相对于 scheme 的路径，不包含 `public://`，也不以 `/` 开头。
+- 产品文件目录使用 `genehub/products/<product>/<category>` 分层，例如 `genehub/products/solidex/images`、`genehub/products/solidex/documents/msds`。
 - 旧站 URL 字段例如 `products_link` 用纯文本，优先 `string_long`，不要默认使用 `link` 字段。
 - HTML/富文本内容字段用 `text_long`。
 - 简单文本用 `string`。
