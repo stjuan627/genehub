@@ -34,6 +34,7 @@
         "drupal/inline_entity_form": "^3.0",
         "drupal/jsonapi_extras": "^3.28",
         "drupal/tablefield": "^3.0",
+        "drupal/tmgmt_ignore_fields": "^1.0",
         "drush/drush": "^13.7"
     },
     "require-dev": {
