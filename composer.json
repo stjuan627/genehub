@@ -30,6 +30,7 @@
         "drupal/field_group": "^4.0",
         "drupal/gin": "^5.0",
         "drupal/gin_toolbar": "^3.0",
+        "drupal/imce": "^3.1",
         "drupal/inline_entity_form": "^3.0",
         "drupal/jsonapi_extras": "^3.28",
         "drupal/tablefield": "^3.0",

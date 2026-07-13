@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a55168d5692fe1694f5339612a982b83",
+    "content-hash": "5e99c6cf2b5db9a5cf7d355e9f36a530",
     "packages": [
         {
             "name": "asm89/stack-cors",
@@ -2522,6 +2522,59 @@
                     "url": "https://paypal.me/saschaeggi"
                 }
             ]
+        },
+        {
+            "name": "drupal/imce",
+            "version": "3.1.5",
+            "source": {
+                "type": "git",
+                "url": "https://git.drupalcode.org/project/imce.git",
+                "reference": "3.1.5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://ftp.drupal.org/files/projects/imce-3.1.5.zip",
+                "reference": "3.1.5",
+                "shasum": "197c4e6181581e00ed92d35f7f6a873531892636"
+            },
+            "require": {
+                "drupal/core": "^9.3 || ^10 || ^11"
+            },
+            "require-dev": {
+                "drupal/bueditor": "^3.0"
+            },
+            "type": "drupal-module",
+            "extra": {
+                "drupal": {
+                    "version": "3.1.5",
+                    "datestamp": "1777846923",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
+                }
+            },
+            "notification-url": "https://packages.drupal.org/8/downloads",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "See contributors",
+                    "homepage": "https://www.drupal.org/node/2841111/committers",
+                    "role": "Developer"
+                },
+                {
+                    "name": "ufku",
+                    "homepage": "https://www.drupal.org/user/9910"
+                }
+            ],
+            "description": "Provides a file manager supporting personal folders.",
+            "homepage": "https://drupal.org/project/imce",
+            "support": {
+                "source": "https://git.drupalcode.org/project/imce",
+                "issues": "https://www.drupal.org/project/issues/imce"
+            }
         },
         {
             "name": "drupal/inline_entity_form",
