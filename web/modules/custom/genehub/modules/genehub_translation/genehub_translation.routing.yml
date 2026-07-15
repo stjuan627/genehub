@@ -1,0 +1,9 @@
+genehub_translation.settings:
+  path: '/admin/config/regional/genehub-translation'
+  defaults:
+    _form: '\Drupal\genehub_translation\Form\TerminologySettingsForm'
+    _title: 'GeneHub translation terminology'
+  requirements:
+    _permission: 'administer site configuration'
+  options:
+    _admin_route: TRUE

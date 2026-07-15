@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Install hooks for the GeneHub Translation module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Populates active configuration with the bundled initial terminology.
+ */
+function genehub_translation_install(): void {
+  $path = __DIR__ . '/data/gene-product-terminology.csv';
+  $terminology = file_get_contents($path);
+  if ($terminology === FALSE) {
+    throw new RuntimeException(sprintf('Unable to read default terminology from %s.', $path));
+  }
+
+  \Drupal::configFactory()
+    ->getEditable('genehub_translation.settings')
+    ->set('terminology', $terminology)
+    ->save();
+}

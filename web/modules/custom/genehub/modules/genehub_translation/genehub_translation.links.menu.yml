@@ -1,0 +1,5 @@
+genehub_translation.settings:
+  title: 'GeneHub translation terminology'
+  description: 'Manage terminology for English-to-Chinese AI translations.'
+  route_name: genehub_translation.settings
+  parent: system.admin_config_regional

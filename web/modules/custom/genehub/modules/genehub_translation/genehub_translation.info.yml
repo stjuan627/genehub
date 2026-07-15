@@ -1,0 +1,9 @@
+name: 'GeneHub Translation'
+type: module
+description: 'Enforces GeneHub terminology for English-to-Chinese AI translations.'
+package: Custom
+core_version_requirement: ^11
+dependencies:
+  - ai:ai
+  - ai_tmgmt:ai_tmgmt
+  - genehub:genehub

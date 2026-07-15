@@ -1,0 +1,13 @@
+services:
+  genehub_translation.terminology:
+    class: Drupal\genehub_translation\TerminologyManager
+    arguments:
+      - '@config.factory'
+
+  genehub_translation.ai_translation_subscriber:
+    class: Drupal\genehub_translation\EventSubscriber\AiTranslationSubscriber
+    arguments:
+      - '@genehub_translation.terminology'
+      - '@language_manager'
+    tags:
+      - { name: event_subscriber }

@@ -1,0 +1,7 @@
+genehub_translation.settings:
+  type: config_object
+  label: 'GeneHub translation terminology settings'
+  mapping:
+    terminology:
+      type: text
+      label: 'English-to-Chinese terminology CSV'
