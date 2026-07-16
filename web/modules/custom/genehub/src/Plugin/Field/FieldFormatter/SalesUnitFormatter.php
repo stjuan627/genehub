@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\genehub_solidex\Plugin\Field\FieldFormatter;
+namespace Drupal\genehub\Plugin\Field\FieldFormatter;
 
 use Drupal\Core\Field\Attribute\FieldFormatter;
 use Drupal\Core\Field\FieldItemListInterface;

@@ -1,0 +1,4 @@
+administer generic products:
+  title: 'Administer generic products'
+  description: 'Create, edit, delete, and translate generic product entities.'
+  restrict access: true

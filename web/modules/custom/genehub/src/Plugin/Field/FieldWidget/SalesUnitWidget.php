@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\genehub_solidex\Plugin\Field\FieldWidget;
+namespace Drupal\genehub\Plugin\Field\FieldWidget;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Field\Attribute\FieldWidget;

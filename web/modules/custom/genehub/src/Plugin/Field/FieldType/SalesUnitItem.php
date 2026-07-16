@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\genehub_solidex\Plugin\Field\FieldType;
+namespace Drupal\genehub\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\Attribute\FieldType;
 use Drupal\Core\Field\FieldItemBase;

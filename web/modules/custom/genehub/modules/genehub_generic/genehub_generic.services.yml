@@ -1,0 +1,5 @@
+services:
+  genehub_generic.route_subscriber:
+    class: Drupal\genehub_generic\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber }

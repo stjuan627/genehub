@@ -1,0 +1,13 @@
+name: GeneHub Generic Product
+type: module
+description: Defines generic product entities for small, heterogeneous product families.
+package: Custom
+core_version_requirement: ^11
+dependencies:
+  - drupal:content_translation
+  - drupal:file
+  - drupal:image
+  - drupal:options
+  - drupal:text
+  - drupal:user
+  - genehub:genehub

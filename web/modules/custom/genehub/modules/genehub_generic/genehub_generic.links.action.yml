@@ -1,0 +1,6 @@
+entity.product_generic.add_form:
+  route_name: entity.product_generic.add_form
+  title: 'Add generic product'
+  appears_on:
+    - genehub.products_add
+    - entity.product_generic.collection

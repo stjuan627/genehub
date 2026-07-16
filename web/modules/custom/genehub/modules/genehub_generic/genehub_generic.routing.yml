@@ -1,0 +1,9 @@
+entity.product_generic.settings:
+  path: '/admin/structure/products/generic/settings'
+  defaults:
+    _controller: '\Drupal\genehub_generic\Controller\GenericProductSettingsController::overview'
+    _title: 'Generic product settings'
+  requirements:
+    _permission: 'administer generic products'
+  options:
+    _admin_route: TRUE

@@ -1,0 +1,26 @@
+entity.product_generic.collection:
+  route_name: entity.product_generic.collection
+  base_route: genehub.products
+  title: 'Generic'
+
+entity.product_generic.settings:
+  route_name: entity.product_generic.settings
+  base_route: entity.product_generic.settings
+  title: 'Settings'
+  weight: 0
+
+entity.product_generic.canonical:
+  route_name: entity.product_generic.canonical
+  base_route: entity.product_generic.canonical
+  title: 'View'
+
+entity.product_generic.edit_form:
+  route_name: entity.product_generic.edit_form
+  base_route: entity.product_generic.canonical
+  title: 'Edit'
+
+entity.product_generic.delete_form:
+  route_name: entity.product_generic.delete_form
+  base_route: entity.product_generic.canonical
+  title: 'Delete'
+  weight: 10

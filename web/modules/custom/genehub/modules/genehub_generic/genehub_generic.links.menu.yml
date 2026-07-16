@@ -1,0 +1,29 @@
+entity.product_generic.collection:
+  title: 'Generic products'
+  description: 'Manage generic products.'
+  route_name: entity.product_generic.collection
+  parent: genehub.products
+  weight: 20
+
+entity.product_generic.settings:
+  title: 'Generic product settings'
+  description: 'Manage generic product fields and display settings.'
+  route_name: entity.product_generic.settings
+  parent: genehub.products_settings
+  weight: 21
+
+genehub_generic.navigation.products.generic:
+  title: 'Generic products'
+  description: 'Manage generic products.'
+  route_name: entity.product_generic.collection
+  menu_name: content
+  parent: genehub.navigation.products
+  weight: 20
+
+genehub_generic.navigation.create.product_generic:
+  title: 'Generic product'
+  description: 'Create a generic product.'
+  route_name: entity.product_generic.add_form
+  menu_name: content
+  parent: navigation.create
+  weight: 30
