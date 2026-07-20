@@ -160,6 +160,10 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       'genehub/products/solidex/documents/manuals',
       -36,
     );
+    $fields['documents'] = static::documentsField(
+      'genehub/products/solidex/documents',
+      -35.5,
+    );
     $fields['biomarker_cat_id'] = static::stringField(t('Biomarker category ID'), FALSE, FALSE, -35);
     $fields['cell_type'] = static::stringField(t('Cell type'), FALSE, FALSE, -30);
     $fields['isolation_method'] = static::stringField(t('Isolation method'), FALSE, FALSE, -25);
@@ -303,6 +307,41 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setSetting('uri_scheme', 'public')
       ->setSetting('file_directory', $directory)
       ->setSetting('file_extensions', 'pdf')
+      ->setDisplayOptions('view', [
+        'label' => 'above',
+        'type' => 'file_default',
+        'weight' => $weight,
+      ])
+      ->setDisplayConfigurable('view', TRUE)
+      ->setDisplayOptions('form', [
+        'type' => 'file_generic',
+        'weight' => $weight,
+      ])
+      ->setDisplayConfigurable('form', TRUE);
+  }
+
+  /**
+   * Creates a multi-value PDF base field with a per-item display name.
+   *
+   * The description_field setting is enabled so editors can attach a
+   * display name (e.g. "Manual", "Spec") to each uploaded file.
+   *
+   * @param string $directory
+   *   The file_directory setting (relative to the public scheme).
+   * @param int|float $weight
+   *   Form/view weight.
+   */
+  private static function documentsField(string $directory, int|float $weight): BaseFieldDefinition {
+    return BaseFieldDefinition::create('file')
+      ->setLabel(t('Documents'))
+      ->setDescription(t('Additional downloadable documents. Each file may carry a display name such as "Manual", "Spec", or "Brochure".'))
+      ->setRequired(FALSE)
+      ->setTranslatable(TRUE)
+      ->setCardinality(BaseFieldDefinition::CARDINALITY_UNLIMITED)
+      ->setSetting('uri_scheme', 'public')
+      ->setSetting('file_directory', $directory)
+      ->setSetting('file_extensions', 'pdf')
+      ->setSetting('description_field', TRUE)
       ->setDisplayOptions('view', [
         'label' => 'above',
         'type' => 'file_default',

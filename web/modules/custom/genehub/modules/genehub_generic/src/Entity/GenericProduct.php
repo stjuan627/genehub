@@ -180,23 +180,9 @@ final class GenericProduct extends ContentEntityBase implements EntityOwnerInter
       ])
       ->setDisplayConfigurable('form', TRUE);
 
-    $fields['datasheet'] = static::pdfField(
-      t('Datasheet'),
-      t('The product datasheet.'),
-      'genehub/products/generic/documents/datasheets',
+    $fields['documents'] = static::documentsField(
+      'genehub/products/generic/documents',
       -20,
-    );
-    $fields['protocol'] = static::pdfField(
-      t('Protocol'),
-      t('The product protocol.'),
-      'genehub/products/generic/documents/protocols',
-      -15,
-    );
-    $fields['coa'] = static::pdfField(
-      t('COA'),
-      t('The product certificate of analysis.'),
-      'genehub/products/generic/documents/coa',
-      -10,
     );
 
     $fields['sales_units'] = BaseFieldDefinition::create('genehub_sales_unit')
@@ -322,6 +308,41 @@ final class GenericProduct extends ContentEntityBase implements EntityOwnerInter
       ->setSetting('uri_scheme', 'public')
       ->setSetting('file_directory', $directory)
       ->setSetting('file_extensions', 'pdf')
+      ->setDisplayOptions('view', [
+        'label' => 'above',
+        'type' => 'file_default',
+        'weight' => $weight,
+      ])
+      ->setDisplayConfigurable('view', TRUE)
+      ->setDisplayOptions('form', [
+        'type' => 'file_generic',
+        'weight' => $weight,
+      ])
+      ->setDisplayConfigurable('form', TRUE);
+  }
+
+  /**
+   * Creates a multi-value PDF base field with a per-item display name.
+   *
+   * The description_field setting is enabled so editors can attach a
+   * display name (e.g. "Manual", "Spec") to each uploaded file.
+   *
+   * @param string $directory
+   *   The file_directory setting (relative to the public scheme).
+   * @param int|float $weight
+   *   Form/view weight.
+   */
+  private static function documentsField(string $directory, int|float $weight): BaseFieldDefinition {
+    return BaseFieldDefinition::create('file')
+      ->setLabel(t('Documents'))
+      ->setDescription(t('Additional downloadable documents. Each file may carry a display name such as "Manual", "Spec", or "Brochure".'))
+      ->setRequired(FALSE)
+      ->setTranslatable(TRUE)
+      ->setCardinality(BaseFieldDefinition::CARDINALITY_UNLIMITED)
+      ->setSetting('uri_scheme', 'public')
+      ->setSetting('file_directory', $directory)
+      ->setSetting('file_extensions', 'pdf')
+      ->setSetting('description_field', TRUE)
       ->setDisplayOptions('view', [
         'label' => 'above',
         'type' => 'file_default',

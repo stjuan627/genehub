@@ -112,7 +112,7 @@ final class GenericProductForm extends ContentEntityForm {
       '#weight' => 10,
       '#optional' => TRUE,
     ];
-    foreach (['image', 'datasheet', 'protocol', 'coa'] as $field_name) {
+    foreach (['image', 'documents'] as $field_name) {
       if (isset($form[$field_name])) {
         $form[$field_name]['#group'] = 'media';
       }
