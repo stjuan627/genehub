@@ -135,7 +135,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setSetting('file_directory', 'genehub/products/solidex/images')
       ->setSetting('file_extensions', 'png jpg jpeg webp')
       ->setSetting('alt_field', TRUE)
-      ->setSetting('alt_field_required', TRUE)
+      ->setSetting('alt_field_required', FALSE)
       ->setSetting('title_field', FALSE)
       ->setDisplayOptions('view', [
         'label' => 'above',
