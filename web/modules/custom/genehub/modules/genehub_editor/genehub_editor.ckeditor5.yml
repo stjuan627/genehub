@@ -1,0 +1,10 @@
+genehub_editor_faq_elements:
+  ckeditor5:
+    plugins: []
+  drupal:
+    label: 'FAQ elements (details/summary)'
+    library: genehub_editor/faq_elements
+    elements:
+      - <details class="faq-item">
+      - <summary class="faq-question">
+      - <p class="faq-answer">

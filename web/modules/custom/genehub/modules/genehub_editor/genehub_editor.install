@@ -53,6 +53,32 @@ function genehub_editor_update_9001(): void {
 }
 
 /**
+ * Implements hook_update_N().
+ *
+ * Enables the FAQ schema extension plugin on the Full HTML text format so
+ * CKEditor 5 properly models <details> and <summary>. Required for the
+ * FAQ snippet template to behave correctly in the editor (Enter creates
+ * sibling paragraphs, caret lands outside <details> after insertion).
+ */
+function genehub_editor_update_9002(): void {
+  $editor_storage = \Drupal::entityTypeManager()->getStorage('editor');
+  if (!$editor_storage instanceof ConfigEntityStorageInterface) {
+    return;
+  }
+  $editor = $editor_storage->load(GenehubEditorConstants::FULL_HTML_FORMAT);
+  if (!$editor instanceof Editor || $editor->getEditor() !== 'ckeditor5') {
+    return;
+  }
+
+  $settings = $editor->getSettings();
+  if (!isset($settings['plugins']['genehub_editor_faq_elements'])) {
+    $settings['plugins']['genehub_editor_faq_elements'] = TRUE;
+    $editor->setSettings($settings);
+    $editor->save();
+  }
+}
+
+/**
  * Attaches the ckeditor5_template "template" plugin to the given text format.
  *
  * @param string $format_id
@@ -104,6 +130,13 @@ function _genehub_editor_attach_template_to_format(string $format_id): void {
     'show_toolbar_text' => 0,
     'custom_toolbar_text' => 'Template',
   ];
+
+  // Enable our FAQ schema extension (post-init JavaScript that registers
+  // <details>/<summary> as proper block elements on the editor model).
+  // Boolean true is sufficient — the plugin has no configurable fields.
+  if (!isset($settings['plugins']['genehub_editor_faq_elements'])) {
+    $settings['plugins']['genehub_editor_faq_elements'] = TRUE;
+  }
 
   $editor->setSettings($settings);
   $editor->save();
@@ -165,6 +198,7 @@ function genehub_editor_uninstall(): void {
   }
 
   unset($settings['plugins']['ckeditor5_template_template']);
+  unset($settings['plugins']['genehub_editor_faq_elements']);
   $editor->setSettings($settings);
   $editor->save();
 

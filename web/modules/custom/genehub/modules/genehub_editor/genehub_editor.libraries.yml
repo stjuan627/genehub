@@ -1,0 +1,5 @@
+faq_elements:
+  js:
+    js/faq_elements.js: {}
+  dependencies:
+    - core/drupal
