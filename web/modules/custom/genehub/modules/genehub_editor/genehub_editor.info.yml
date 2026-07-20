@@ -1,0 +1,10 @@
+name: GeneHub Editor
+type: module
+description: Hosts reusable CKEditor 5 snippets (FAQ blocks, CTA buttons) for GeneHub content formats.
+package: Custom
+core_version_requirement: ^11
+dependencies:
+  - drupal:ckeditor5
+  - drupal:editor
+  - ckeditor5_template:ckeditor5_template
+  - genehub:genehub

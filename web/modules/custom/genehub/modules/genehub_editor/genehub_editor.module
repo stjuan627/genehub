@@ -1,0 +1,8 @@
+<?php
+
+/**
+ * @file
+ * GeneHub Editor — hosts shared CKEditor 5 snippets for content authors.
+ */
+
+declare(strict_types=1);

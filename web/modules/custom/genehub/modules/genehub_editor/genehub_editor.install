@@ -1,0 +1,172 @@
+<?php
+
+/**
+ * @file
+ * Install / update hooks for the GeneHub Editor module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
+use Drupal\editor\Entity\Editor;
+
+/**
+ * Service-style helper that owns the constants shared across install hooks.
+ *
+ * Drupal's PHPCS disallows module-level constants, so we put them on a
+ * dedicated class. This is purely a value-object; no logic lives here.
+ */
+final class GenehubEditorConstants {
+
+  /**
+   * Snippet JSON path, relative to DRUPAL_ROOT.
+   */
+  public const SNIPPETS_PATH = '/modules/custom/genehub/modules/genehub_editor/templates/snippets.json';
+
+  /**
+   * Text-format id that gets the template plugin attached on install.
+   */
+  public const FULL_HTML_FORMAT = 'full_html';
+
+}
+
+/**
+ * Implements hook_install().
+ *
+ * Wires the ckeditor5_template "template" plugin into the existing Full HTML
+ * text format so content authors can insert GeneHub snippets (FAQ blocks,
+ * CTA buttons). Idempotent: re-running on a format that already has the
+ * template button keeps existing order.
+ */
+function genehub_editor_install(): void {
+  _genehub_editor_attach_template_to_format(GenehubEditorConstants::FULL_HTML_FORMAT);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Upgrade path for sites that enabled genehub_editor before the install
+ * hook was added, or after the template plugin config was reset.
+ */
+function genehub_editor_update_9001(): void {
+  _genehub_editor_attach_template_to_format(GenehubEditorConstants::FULL_HTML_FORMAT);
+}
+
+/**
+ * Attaches the ckeditor5_template "template" plugin to the given text format.
+ *
+ * @param string $format_id
+ *   The filter_format / editor.editor id, e.g. "full_html".
+ */
+function _genehub_editor_attach_template_to_format(string $format_id): void {
+  $editor_storage = \Drupal::entityTypeManager()->getStorage('editor');
+  if (!$editor_storage instanceof ConfigEntityStorageInterface) {
+    return;
+  }
+
+  /** @var \Drupal\editor\EditorInterface|null $editor */
+  $editor = $editor_storage->load($format_id);
+  if (!$editor instanceof Editor) {
+    // Format not present on this site (e.g. profile changed Full HTML id);
+    // do nothing rather than guess.
+    return;
+  }
+
+  if ($editor->getEditor() !== 'ckeditor5') {
+    // Format may now use a different editor; skip.
+    return;
+  }
+
+  $settings = $editor->getSettings();
+
+  // Ensure 'template' button is enabled in the toolbar.
+  $toolbar_items = $settings['toolbar']['items'] ?? [];
+  if (!in_array('template', $toolbar_items, TRUE)) {
+    // Keep 'sourceEditing' last if present (Drupal convention).
+    if (in_array('sourceEditing', $toolbar_items, TRUE)) {
+      $toolbar_items = array_values(array_filter(
+        $toolbar_items,
+        static fn ($item) => $item !== 'sourceEditing',
+      ));
+      $toolbar_items[] = 'template';
+      $toolbar_items[] = 'sourceEditing';
+    }
+    else {
+      $toolbar_items[] = 'template';
+    }
+  }
+  $settings['toolbar']['items'] = array_values($toolbar_items);
+
+  // Plugin config: CKEditor 5 stores plugin instances keyed by plugin id; the
+  // ckeditor5_template module's plugin id is "ckeditor5_template_template".
+  $settings['plugins']['ckeditor5_template_template'] = [
+    'file_path' => GenehubEditorConstants::SNIPPETS_PATH,
+    'show_toolbar_text' => 0,
+    'custom_toolbar_text' => 'Template',
+  ];
+
+  $editor->setSettings($settings);
+  $editor->save();
+
+  // Rebuild editor plugin definitions so the toolbar reflects the new button.
+  \Drupal::service('plugin.manager.editor')->clearCachedDefinitions();
+}
+
+/**
+ * Implements hook_requirements().
+ *
+ * Surfaces a clear site-status warning if the snippets file is missing so the
+ * cause is obvious during QA, instead of a silent empty template dropdown.
+ */
+function genehub_editor_requirements(string $phase): array {
+  $requirements = [];
+
+  if ($phase !== 'runtime') {
+    return $requirements;
+  }
+
+  $snippets_uri = DRUPAL_ROOT . GenehubEditorConstants::SNIPPETS_PATH;
+  $requirements['genehub_editor_snippets_file'] = [
+    'title' => t('GeneHub Editor: snippets file'),
+    'description' => t('Expected at @path.', [
+      '@path' => GenehubEditorConstants::SNIPPETS_PATH,
+    ]),
+    'severity' => is_file($snippets_uri) ? REQUIREMENT_OK : REQUIREMENT_WARNING,
+    'value' => is_file($snippets_uri) ? t('Found') : t('Missing'),
+  ];
+
+  return $requirements;
+}
+
+/**
+ * Implements hook_uninstall().
+ *
+ * Removes the template plugin settings and toolbar entry so a future enable
+ * starts from a clean slate. Idempotent: missing entries are skipped.
+ */
+function genehub_editor_uninstall(): void {
+  $editor_storage = \Drupal::entityTypeManager()->getStorage('editor');
+  if (!$editor_storage instanceof ConfigEntityStorageInterface) {
+    return;
+  }
+  $editor = $editor_storage->load(GenehubEditorConstants::FULL_HTML_FORMAT);
+  if (!$editor instanceof Editor || $editor->getEditor() !== 'ckeditor5') {
+    return;
+  }
+
+  $settings = $editor->getSettings();
+  $toolbar_items = $settings['toolbar']['items'] ?? [];
+  if (in_array('template', $toolbar_items, TRUE)) {
+    $toolbar_items = array_values(array_filter(
+      $toolbar_items,
+      static fn ($item) => $item !== 'template',
+    ));
+    $settings['toolbar']['items'] = $toolbar_items;
+  }
+
+  unset($settings['plugins']['ckeditor5_template_template']);
+  $editor->setSettings($settings);
+  $editor->save();
+
+  \Drupal::service('plugin.manager.editor')->clearCachedDefinitions();
+}
