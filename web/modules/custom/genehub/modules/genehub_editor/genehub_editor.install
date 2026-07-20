@@ -71,8 +71,36 @@ function genehub_editor_update_9002(): void {
   }
 
   $settings = $editor->getSettings();
-  if (!isset($settings['plugins']['genehub_editor_faq_elements'])) {
-    $settings['plugins']['genehub_editor_faq_elements'] = TRUE;
+  if (!isset($settings['plugins']['genehub_editor_faq_elements'])
+      || !is_array($settings['plugins']['genehub_editor_faq_elements'])) {
+    $settings['plugins']['genehub_editor_faq_elements'] = [];
+    $editor->setSettings($settings);
+    $editor->save();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Repairs sites that already executed update 9002 with the older boolean
+ * `TRUE` value. Drupal's CKEditor5 plugin manager reads plugin
+ * configuration as `array` and crashes on `TRUE`, so any site currently
+ * running with `TRUE` is broken on first editor open.
+ */
+function genehub_editor_update_9003(): void {
+  $editor_storage = \Drupal::entityTypeManager()->getStorage('editor');
+  if (!$editor_storage instanceof ConfigEntityStorageInterface) {
+    return;
+  }
+  $editor = $editor_storage->load(GenehubEditorConstants::FULL_HTML_FORMAT);
+  if (!$editor instanceof Editor || $editor->getEditor() !== 'ckeditor5') {
+    return;
+  }
+
+  $settings = $editor->getSettings();
+  $existing = $settings['plugins']['genehub_editor_faq_elements'] ?? NULL;
+  if (isset($settings['plugins']['genehub_editor_faq_elements']) && !is_array($existing)) {
+    $settings['plugins']['genehub_editor_faq_elements'] = [];
     $editor->setSettings($settings);
     $editor->save();
   }
@@ -133,9 +161,10 @@ function _genehub_editor_attach_template_to_format(string $format_id): void {
 
   // Enable our FAQ schema extension (post-init JavaScript that registers
   // <details>/<summary> as proper block elements on the editor model).
-  // Boolean true is sufficient — the plugin has no configurable fields.
+  // The plugin has no configuration, so an empty array is enough — Drupal's
+  // CKEditor5 plugin manager insists on array-shaped config values here.
   if (!isset($settings['plugins']['genehub_editor_faq_elements'])) {
-    $settings['plugins']['genehub_editor_faq_elements'] = TRUE;
+    $settings['plugins']['genehub_editor_faq_elements'] = [];
   }
 
   $editor->setSettings($settings);
