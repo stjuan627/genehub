@@ -49,7 +49,7 @@ final class GenericProductForm extends ContentEntityForm {
 
     $product = $this->entity;
     $form['#attached']['library'][] = 'genehub/admin_form';
-    $form['#attributes']['class'][] = 'genehub-sticky-vertical-tabs';
+    $form['#attributes']['class'][] = 'genehub-horizontal-tabs';
 
     $form['advanced']['#attributes']['class'][] = 'entity-meta';
 
@@ -88,7 +88,7 @@ final class GenericProductForm extends ContentEntityForm {
     }
 
     $form['content_tabs'] = [
-      '#type' => 'vertical_tabs',
+      '#type' => 'horizontal_tabs',
       '#weight' => -20,
     ];
 

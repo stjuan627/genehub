@@ -5,6 +5,7 @@ package: Custom
 core_version_requirement: ^11
 dependencies:
   - drupal:content_translation
+  - drupal:field_group
   - drupal:file
   - drupal:image
   - drupal:options
