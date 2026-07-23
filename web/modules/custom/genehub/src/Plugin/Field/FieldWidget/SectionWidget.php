@@ -49,9 +49,18 @@ final class SectionWidget extends WidgetBase {
       '#type' => 'text_format',
       '#title' => $this->t('Section body'),
       '#default_value' => $body,
-      '#format' => $format !== '' ? $format : filter_fallback_format(),
       '#rows' => 10,
     ];
+
+    // Only pin a text format when the item already has a stored one. For a new
+    // (empty) item we deliberately leave #format unset so the text_format
+    // element defaults to the highest-weight allowed format. Forcing the
+    // global fallback format (e.g. plain_text) here would be rejected by
+    // TextFormat::processFormat() when it is not in #allowed_formats, which
+    // silently produces an empty format and an unsaveable, hidden-tab error.
+    if ($format !== '') {
+      $element['body']['#format'] = $format;
+    }
 
     $allowed_formats = $this->getFieldSetting('allowed_formats');
     if ($allowed_formats) {
