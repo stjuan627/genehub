@@ -99,7 +99,7 @@ final class GenericProductForm extends ContentEntityForm {
       '#weight' => 0,
       '#optional' => TRUE,
     ];
-    foreach (['product_name', 'cat_no', 'product_kind', 'products_link', 'brief_description'] as $field_name) {
+    foreach (['product_name', 'slug', 'cat_no', 'product_kind', 'products_link', 'brief_description'] as $field_name) {
       if (isset($form[$field_name])) {
         $form[$field_name]['#group'] = 'overview';
       }

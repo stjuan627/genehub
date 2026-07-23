@@ -125,6 +125,16 @@ final class GenericProduct extends ContentEntityBase implements EntityOwnerInter
     $fields['product_name'] = static::stringField(t('Product name'), TRUE, TRUE, -50)
       ->setDescription(t('The product name used as the entity label.'));
 
+    $fields['slug'] = static::stringField(t('Slug'), FALSE, FALSE, -48)
+      ->setDescription(t('A URL-friendly unique identifier used for route lookup.'))
+      ->addConstraint('UniqueField')
+      ->addPropertyConstraints('value', [
+        'Regex' => [
+          'pattern' => '/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+          'message' => t('The slug may only contain lowercase letters, numbers and hyphens.'),
+        ],
+      ]);
+
     $fields['cat_no'] = static::stringField(t('Primary catalog number'), FALSE, FALSE, -45)
       ->setDescription(t('An optional primary catalog number or catalog family identifier.'));
 
