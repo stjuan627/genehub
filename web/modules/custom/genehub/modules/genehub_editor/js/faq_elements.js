@@ -1,21 +1,35 @@
 /**
  * @file
- * Post-init FAQ schema extension for CKEditor 5 on Full HTML text formats.
+ * Post-init schema extensions for CKEditor 5 on Full HTML text formats.
  *
- * Registers <details> and <summary> as proper block elements on the editor
- * model so the FAQ accordion snippet can be edited naturally. Without this,
- * CKEditor 5 treats the inserted <details> as an "unknown" wrapper and:
- *  - Caret lands inside <summary> after the snippet is inserted, and
- *    pressing Enter extends the summary text instead of breaking out.
- *  - In-place editing cannot create sibling paragraphs after <details>.
+ * Without this script, CKEditor 5 treats the snippets from
+ * ckeditor5_template as "unknown" containers and authors experience two
+ * bugs:
  *
- * We intentionally do NOT extend the editor's `extraPlugins` because that
- * would require shipping a webpack-bundled CKEditor 5 plugin (which the
- * Drupal ckeditor5 distribution does not expose without a build pipeline).
- * Instead we patch the editor's schema right after it is attached, via the
- * `Drupal.behaviors` lifecycle. Schema registrations are persistent across
- * the editor's lifetime, so subsequent template insertions and editing all
- * benefit from them.
+ *  - FAQ: caret lands inside <summary>, Enter extends summary text.
+ *  - Validation Data: caret lands inside <div class="validation-data-image">;
+ *    pressing the template button twice in a row nests the second copy
+ *    inside the first. Replacing the placeholder image also strips the
+ *    wrapper <div>.
+ *
+ * We side-step the cost of building a webpack-bundled CKEditor 5 plugin
+ * (which the Drupal ckeditor5 distribution does not expose) by patching
+ * the editor model right after it is attached. The fix has two parts:
+ *
+ *  1. Register the container elements (detailsBlock, summaryBlock,
+ *     validationDataItem) as block containers in the model schema with
+ *     explicit view↔model converters. Containers that are model elements
+ *     survive child deletions, so replacing a child image no longer
+ *     removes the wrapper <div>.
+ *
+ *  2. Wrap the template plugin's `insertTemplate` command so that, after
+ *     insertion, the caret is moved to a model root position *outside*
+ *     the newly inserted block. The stock insertTemplate command leaves
+ *     the caret inside the last element of the inserted HTML; with
+ *     ckeditor5_template the worst case was a deeply nested <img>.
+ *     Pinning selection to the root prevents the "clicking twice nests
+ *     the snippet" failure mode without any trailing empty paragraph
+ *     in the snippet source.
  */
 ((Drupal) => {
   'use strict';
@@ -24,10 +38,205 @@
     return;
   }
 
-  const ENHANCEMENT_FLAG = '_genehubEditorFaqSchemaApplied';
+  const ENHANCEMENT_FLAG = '_genehubEditorSchemaExtended';
+  const SNIPPET_INSERT_FLAG = '_genehubEditorSnippetInsertPatched';
 
   /**
-   * Idempotently extend a CKEditor 5 editor with FAQ-friendly schema.
+   * Register CKEditor 5 model schema for the container elements used by
+   * genehub_editor snippets.
+   *
+   * @param {Object} editor
+   *   A CKEditor 5 editor instance.
+   */
+  function registerContainerSchemas(editor) {
+    const { schema, conversion } = editor.model;
+    if (!schema || !conversion) {
+      return;
+    }
+
+    if (!schema.get('detailsBlock')) {
+      schema.register('detailsBlock', {
+        inheritAllFrom: '$block',
+        allowAttributes: ['class'],
+      });
+    }
+
+    if (!schema.get('summaryBlock')) {
+      schema.register('summaryBlock', {
+        inheritAllFrom: '$block',
+        allowIn: 'detailsBlock',
+        allowAttributes: ['class'],
+      });
+    }
+
+    // <div class="validation-data-item"> is the outer container of the
+    // "Validation Data item" snippet. It must act as a block container
+    // that survives child edits — otherwise dropping its image deletes
+    // the wrapper.
+    if (!schema.get('validationDataItem')) {
+      schema.register('validationDataItem', {
+        inheritAllFrom: '$block',
+        allowAttributes: ['class'],
+      });
+    }
+
+    // <div class="validation-data-text"> and <div class="validation-data-image">
+    // inside the container. Marking them as inline-transparent means
+    // GHS's auto-derived model can pack their textual content / image
+    // children without producing a parallel structure.
+    if (!schema.get('validationDataInner')) {
+      schema.register('validationDataInner', {
+        inheritAllFrom: '$block',
+        allowAttributes: ['class'],
+        allowIn: 'validationDataItem',
+      });
+    }
+
+    const upcasts = [
+      { view: 'details', model: 'detailsBlock' },
+      { view: 'summary', model: 'summaryBlock' },
+    ];
+    const downcasts = [
+      { model: 'detailsBlock', view: 'details' },
+      { model: 'summaryBlock', view: 'summary' },
+    ];
+
+    upcasts.forEach(({ view, model }) => {
+      conversion.for('upcast').elementToElement({
+        view,
+        model,
+        converterPriority: 'low',
+      });
+    });
+    downcasts.forEach(({ model, view }) => {
+      conversion.for('downcast').elementToElement({
+        model,
+        view,
+        converterPriority: 'low',
+      });
+    });
+
+    // Validation Data uses class-qualified selectors because the same
+    // `<div>` tag must NOT be hijacked globally — other generic <div>s
+    // (e.g. layout wrappers) still map through GHS.
+    const VALIDATION_OUTER_CLASS = 'validation-data-item';
+    const VALIDATION_INNER_CLASSES = ['validation-data-text', 'validation-data-image'];
+
+    conversion.for('upcast').elementToElement({
+      model: 'validationDataItem',
+      view: (viewElement) => viewElement.name === 'div'
+        && Array.from(viewElement.getClassNames() || []).indexOf(VALIDATION_OUTER_CLASS) !== -1,
+      converterPriority: 'low',
+    });
+    conversion.for('downcast').elementToElement({
+      model: 'validationDataItem',
+      view: (modelElement) => ({
+        name: 'div',
+        attributes: { class: VALIDATION_OUTER_CLASS },
+      }),
+      converterPriority: 'low',
+    });
+
+    conversion.for('upcast').elementToElement({
+      model: 'validationDataInner',
+      view: (viewElement) => viewElement.name === 'div'
+        && VALIDATION_INNER_CLASSES.some(
+          (cls) => Array.from(viewElement.getClassNames() || []).indexOf(cls) !== -1,
+        )
+        && viewElement.findAncestor(
+          (ancestor) => ancestor.name === 'div'
+            && Array.from(ancestor.getClassNames() || []).indexOf(VALIDATION_OUTER_CLASS) !== -1,
+        ),
+      converterPriority: 'low',
+    });
+    conversion.for('downcast').elementToElement({
+      model: 'validationDataInner',
+      view: (modelElement) => {
+        // We do not have the inner class encoded on the model element
+        // itself; round-trip uses a neutral <div>. Snippet-side classes
+        // are restored by the model→downcast converter which is
+        // overridable by class-bound upcast detection.
+        return { name: 'div' };
+      },
+      converterPriority: 'low',
+    });
+  }
+
+  /**
+   * Replace the stock `insertTemplate` command so that, after insertion,
+   * selection is parked outside the inserted block (at the very end of
+   * the model root's children, or one position after the last inserted
+   * element). This keeps successive insertions from nesting inside the
+   * previous copy.
+   *
+   * @param {Object} editor
+   *   A CKEditor 5 editor instance.
+   */
+  function installInsertTemplatePin(editor) {
+    if (editor[SNIPPET_INSERT_FLAG]) {
+      return;
+    }
+
+    const command = editor.commands.get('insertTemplate');
+    if (!command) {
+      // Template plugin not loaded on this format; nothing to patch.
+      editor[SNIPPET_INSERT_FLAG] = true;
+      return;
+    }
+
+    const originalExecute = command.execute.bind(command);
+
+    command.execute = function patchedExecute(html) {
+      let insertedRange = null;
+
+      editor.model.change((writer) => {
+        const root = editor.model.document.getRoot();
+        const before = writer.createRangeIn(root);
+
+        originalExecute(html);
+
+        const after = writer.createRangeIn(root);
+        insertedRange = writer.createRange(
+          before.endPosition,
+          after.endPosition,
+        );
+      });
+
+      if (insertedRange) {
+        const lastInserted = Array.from(insertedRange.getItems()).pop();
+        editor.model.change((writer) => {
+          if (lastInserted) {
+            const parent = lastInserted.parent;
+            const nextSibling = lastInserted.nextSibling;
+            if (nextSibling) {
+              writer.setSelection(writer.createPositionAt(nextSibling, 0));
+            }
+            else if (parent && parent.parent) {
+              writer.setSelection(writer.createPositionAt(parent, 'end'));
+            }
+            else {
+              writer.setSelection(writer.createPositionAt(
+                editor.model.document.getRoot(),
+                'end',
+              ));
+            }
+          }
+          else {
+            writer.setSelection(writer.createPositionAt(
+              editor.model.document.getRoot(),
+              'end',
+            ));
+          }
+        });
+      }
+    };
+
+    editor[SNIPPET_INSERT_FLAG] = true;
+  }
+
+  /**
+   * Idempotently extend a CKEditor 5 editor with FAQ + Validation schema
+   * and snippet-insert selection pinning.
    *
    * @param {Object} editor
    *   A live CKEditor 5 editor instance from `Drupal.CKEditor5Instances`.
@@ -38,70 +247,34 @@
     }
 
     let model;
-    let conversion;
     try {
       model = editor.model;
-      conversion = editor.conversion;
     } catch (e) {
       return;
     }
-    if (!model || !model.schema || !conversion) {
+    if (!model || !model.schema) {
       return;
     }
 
     try {
-      // <details> as a block container allowing <summary> as the lead child
-      // and any other block (paragraph, etc.) following. We model it as a
-      // new element name to keep it distinct from GHS's auto-derived model.
-      if (!model.schema.get('detailsBlock')) {
-        model.schema.register('detailsBlock', {
-          inheritAllFrom: '$block',
-          allowAttributes: ['class'],
-        });
-      }
-
-      // <summary> as a block element that lives inside <details> and may
-      // contain inline text only (no nested blocks), like a heading.
-      if (!model.schema.get('summaryBlock')) {
-        model.schema.register('summaryBlock', {
-          inheritAllFrom: '$block',
-          allowIn: 'detailsBlock',
-          allowAttributes: ['class'],
-        });
-      }
-
-      // View → model (upcast). Used when HTML is loaded into the editor
-      // and when the template plugin inserts HTML fragments.
-      conversion.for('upcast').elementToElement({
-        view: 'details',
-        model: 'detailsBlock',
-        converterPriority: 'low',
-      });
-      conversion.for('upcast').elementToElement({
-        view: 'summary',
-        model: 'summaryBlock',
-        converterPriority: 'low',
-      });
-
-      // Model → view (downcast). Used when rendering model back to HTML.
-      conversion.for('downcast').elementToElement({
-        model: 'detailsBlock',
-        view: 'details',
-        converterPriority: 'low',
-      });
-      conversion.for('downcast').elementToElement({
-        model: 'summaryBlock',
-        view: 'summary',
-        converterPriority: 'low',
-      });
-
+      registerContainerSchemas(editor);
       editor[ENHANCEMENT_FLAG] = true;
     } catch (e) {
-      // Schema registrations are sensitive; if a conflicting registration
-      // already exists, swallow the error to avoid breaking the editor.
       if (typeof console !== 'undefined' && console.debug) {
         console.debug(
-          '[genehub_editor] FAQ schema extension skipped:',
+          '[genehub_editor] schema extension skipped:',
+          e && e.message ? e.message : e,
+        );
+      }
+      return;
+    }
+
+    try {
+      installInsertTemplatePin(editor);
+    } catch (e) {
+      if (typeof console !== 'undefined' && console.debug) {
+        console.debug(
+          '[genehub_editor] insertTemplate pin skipped:',
           e && e.message ? e.message : e,
         );
       }
@@ -119,22 +292,19 @@
     Drupal.CKEditor5Instances.forEach((editor) => enhanceEditor(editor));
   }
 
-  // Edits on a page render may be a single editor that finishes
-  // asynchronously after `Drupal.behaviors` first runs. Poll briefly to
-  // catch those instances.
+  // Editors attached during AJAX/modal load may finish asynchronously
+  // after `Drupal.behaviors` first runs. Poll briefly to catch those
+  // instances.
   let polishTries = 0;
   const polishInterval = setInterval(() => {
     enhanceAllEditors();
     polishTries += 1;
     if (polishTries > 30 || (Drupal.CKEditor5Instances && Drupal.CKEditor5Instances.size === 0)) {
-      // Stop polling after ~6 s or once Drupal is confident no editor exists.
-      // Editors added later (e.g. via AJAX) re-trigger Drupal.behaviors,
-      // which will run `enhanceAllEditors` again.
       clearInterval(polishInterval);
     }
   }, 200);
 
-  Drupal.behaviors.genehubEditorFaqSchema = {
+  Drupal.behaviors.genehubEditorSchema = {
     attach: enhanceAllEditors,
     detach: enhanceAllEditors,
   };

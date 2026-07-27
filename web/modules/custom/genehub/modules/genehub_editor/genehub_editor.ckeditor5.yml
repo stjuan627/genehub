@@ -1,10 +1,13 @@
-genehub_editor_faq_elements:
+genehub_editor_snippet_schema:
   ckeditor5:
     plugins: []
   drupal:
-    label: 'FAQ elements (details/summary)'
-    library: genehub_editor/faq_elements
+    label: 'Snippet schema (FAQ + Validation Data)'
+    library: genehub_editor/snippet_schema
     elements:
       - <details class="faq-item">
       - <summary class="faq-question">
       - <p class="faq-answer">
+      - <div class="validation-data-item">
+      - <div class="validation-data-text">
+      - <div class="validation-data-image">

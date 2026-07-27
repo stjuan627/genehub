@@ -85,7 +85,7 @@ function genehub_editor_uninstall(): void {
 
   // Drop the plugin configurations we own.
   unset($settings['plugins']['ckeditor5_template_template']);
-  unset($settings['plugins']['genehub_editor_faq_elements']);
+  unset($settings['plugins']['genehub_editor_snippet_schema']);
 
   $editor->setSettings($settings);
   $editor->save();
@@ -171,10 +171,10 @@ function _genehub_editor_configure_full_html(): void {
     'custom_toolbar_text' => 'Template',
   ];
 
-  // FAQ schema extension plugin. Empty array is sufficient — Drupal's
+  // Snippet schema extension plugin. Empty array is sufficient — Drupal's
   // CKEditor5 plugin manager insists on array-shaped config; the plugin
   // itself ships no configurable fields.
-  $settings['plugins']['genehub_editor_faq_elements'] = [];
+  $settings['plugins']['genehub_editor_snippet_schema'] = [];
 
   $editor->setSettings($settings);
   $editor->save();

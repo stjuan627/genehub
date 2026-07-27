@@ -1,4 +1,4 @@
-faq_elements:
+snippet_schema:
   js:
     js/faq_elements.js: {}
   dependencies:
