@@ -3,7 +3,6 @@ genehub_editor_snippet_schema:
     plugins: []
   drupal:
     label: 'Snippet schema (FAQ + Validation Data)'
-    library: genehub_editor/snippet_schema
     elements:
       - <details class="faq-item">
       - <summary class="faq-question">
