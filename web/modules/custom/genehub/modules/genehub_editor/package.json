@@ -1,0 +1,13 @@
+{
+  "name": "genehub-editor",
+  "private": true,
+  "scripts": {
+    "build": "webpack --config webpack.config.js"
+  },
+  "devDependencies": {
+    "ckeditor5": "46.0.2",
+    "terser-webpack-plugin": "^5.3.14",
+    "webpack": "^5.101.3",
+    "webpack-cli": "^6.0.1"
+  }
+}

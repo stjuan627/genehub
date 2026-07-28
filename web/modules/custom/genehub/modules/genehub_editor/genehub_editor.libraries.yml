@@ -1,5 +1,5 @@
 snippet_schema:
   js:
-    js/faq_elements.js: {}
+    js/build/snippet-schema.js: { preprocess: false, minified: true }
   dependencies:
-    - core/drupal
+    - core/ckeditor5

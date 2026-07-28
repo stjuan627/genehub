@@ -4,41 +4,8 @@
  * @file
  * GeneHub Editor — hosts shared CKEditor 5 snippets for content authors.
  *
- * Most of the editor wiring lives in `genehub_editor.install`. This file
- * exists because Drupal's CKEditor 5 integration does not attach plain
- * "vanilla JS" libraries declared via a plugin manifest's `library:` field;
- * that field is reserved for the webpack-bundled plugin JS shipped with
- * CKEditor 5 plugins. We instead attach `genehub_editor/snippet_schema`
- * via hook_page_attachments() on routes that may host a Full HTML
- * editor, where the script itself decides whether to apply schema
- * extensions.
+ * The snippet schema is a compiled CKEditor 5 plugin loaded through
+ * `genehub_editor.ckeditor5.yml`.
  */
 
 declare(strict_types=1);
-
-/**
- * Implements hook_page_attachments().
- *
- * Attaches the snippet schema library on routes that may render a
- * Full HTML editor: entity edit/add, content-translation routes, and
- * the node creation landing page. The library is a small vanilla-JS
- * file, so attaching it on these pages has negligible cost when no
- * editor instance is present.
- */
-function genehub_editor_page_attachments(array &$attachments): void {
-  $route = \Drupal::routeMatch()->getRouteName();
-  if (!is_string($route)) {
-    return;
-  }
-
-  $is_editor_route = str_contains($route, '.edit_form')
-    || str_contains($route, '.add_form')
-    || str_contains($route, '.content_translation_')
-    || $route === 'node.add'
-    || $route === 'block.admin_edit_form'
-    || $route === 'editor.editor_edit_page';
-
-  if ($is_editor_route) {
-    $attachments['#attached']['library'][] = 'genehub_editor/snippet_schema';
-  }
-}
