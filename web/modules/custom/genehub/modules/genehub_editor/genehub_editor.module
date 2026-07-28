@@ -4,8 +4,35 @@
  * @file
  * GeneHub Editor — hosts shared CKEditor 5 snippets for content authors.
  *
- * The snippet schema is a compiled CKEditor 5 plugin loaded through
- * `genehub_editor.ckeditor5.yml`.
+ * Most of the editor wiring lives in `genehub_editor.install`. This file
+ * attaches the standalone WPS paste compatibility script on routes that may
+ * host an editor. The snippet schema is a compiled CKEditor 5 plugin and is
+ * loaded through `genehub_editor.ckeditor5.yml`.
  */
 
 declare(strict_types=1);
+
+/**
+ * Implements hook_page_attachments().
+ *
+ * Attaches the WPS paste compatibility library on routes that may render an
+ * editor: entity edit/add, content-translation routes, and the node creation
+ * landing page.
+ */
+function genehub_editor_page_attachments(array &$attachments): void {
+  $route = \Drupal::routeMatch()->getRouteName();
+  if (!is_string($route)) {
+    return;
+  }
+
+  $is_editor_route = str_contains($route, '.edit_form')
+    || str_contains($route, '.add_form')
+    || str_contains($route, '.content_translation_')
+    || $route === 'node.add'
+    || $route === 'block.admin_edit_form'
+    || $route === 'editor.editor_edit_page';
+
+  if ($is_editor_route) {
+    $attachments['#attached']['library'][] = 'genehub_editor/wps_paste_fix';
+  }
+}

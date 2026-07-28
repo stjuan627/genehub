@@ -3,3 +3,9 @@ snippet_schema:
     js/build/snippet-schema.js: { preprocess: false, minified: true }
   dependencies:
     - core/ckeditor5
+
+wps_paste_fix:
+  js:
+    js/wps_paste_fix.js: {}
+  dependencies:
+    - core/drupal
