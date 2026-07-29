@@ -164,6 +164,18 @@ final class GenericProduct extends ContentEntityBase implements EntityOwnerInter
     $fields['products_link'] = static::plainLongTextField(t('Legacy product link'), FALSE, FALSE, -35)
       ->setDescription(t('The product URL or path from the legacy site.'));
 
+    $fields['page_title'] = static::stringField(t('Page title'), FALSE, TRUE, -33)
+      ->setDescription(t('The HTML page title used for search engines and browser tabs.'))
+      ->setDisplayOptions('view', [
+        'region' => 'hidden',
+      ]);
+
+    $fields['meta_description'] = static::plainLongTextField(t('Meta description'), FALSE, TRUE, -32)
+      ->setDescription(t('The meta description used by search engines.'))
+      ->setDisplayOptions('view', [
+        'region' => 'hidden',
+      ]);
+
     $fields['brief_description'] = static::formattedLongTextField(t('Brief description'), FALSE, TRUE, -30)
       ->setDescription(t('A short product summary for listings and introductory display.'));
 

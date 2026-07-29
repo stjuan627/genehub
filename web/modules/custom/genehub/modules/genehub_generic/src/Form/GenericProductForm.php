@@ -105,6 +105,19 @@ final class GenericProductForm extends ContentEntityForm {
       }
     }
 
+    $form['seo'] = [
+      '#type' => 'details',
+      '#title' => $this->t('SEO'),
+      '#group' => 'advanced',
+      '#weight' => 10,
+      '#optional' => TRUE,
+    ];
+    foreach (['page_title', 'meta_description'] as $field_name) {
+      if (isset($form[$field_name])) {
+        $form[$field_name]['#group'] = 'seo';
+      }
+    }
+
     $form['media'] = [
       '#type' => 'details',
       '#title' => $this->t('Media and documents'),
