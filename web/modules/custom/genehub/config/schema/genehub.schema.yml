@@ -1,0 +1,8 @@
+genehub.settings:
+  type: config_object
+  label: 'GeneHub shared settings'
+  mapping:
+    public_base_url:
+      type: string
+      label: 'Public base URL'
+      description: 'Absolute origin (no trailing slash) used by the AbsoluteUrlFilter to rewrite same-site relative URLs in API-served HTML. Example: https://www.example.com'

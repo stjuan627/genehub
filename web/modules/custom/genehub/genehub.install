@@ -1,0 +1,29 @@
+<?php
+
+/**
+ * @file
+ * Install / uninstall hooks for the GeneHub parent module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_install().
+ *
+ * Ensures the AbsoluteUrlFilter has a sensible default base URL. We try the
+ * canonical site URL from Drupal's system configuration; if it is not set
+ * yet (typical during site install before configuration import), we leave
+ * the value empty and the filter will fall back to the request host.
+ */
+function genehub_install(): void {
+  $config = \Drupal::configFactory()->getEditable('genehub.settings');
+
+  if ((string) $config->get('public_base_url') === '') {
+    $site_url = (string) (\Drupal::service('request')->getSchemeAndHttpHost() ?? '');
+    if ($site_url !== '') {
+      $config->set('public_base_url', $site_url);
+    }
+  }
+
+  $config->save();
+}

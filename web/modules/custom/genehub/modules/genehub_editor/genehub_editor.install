@@ -21,6 +21,7 @@ declare(strict_types=1);
 
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\editor\Entity\Editor;
+use Drupal\filter\Entity\FilterFormat;
 
 /**
  * Value-object holding the strings shared across install hooks.
@@ -89,6 +90,8 @@ function genehub_editor_uninstall(): void {
 
   $editor->setSettings($settings);
   $editor->save();
+
+  _genehub_editor_remove_absolute_url_filter();
 
   \Drupal::service('plugin.manager.editor')->clearCachedDefinitions();
 }
@@ -179,7 +182,69 @@ function _genehub_editor_configure_full_html(): void {
   $editor->setSettings($settings);
   $editor->save();
 
+  _genehub_editor_ensure_absolute_url_filter();
+
   // Refresh editor plugin definitions so the toolbar reflects the new
   // button on the next request without a full cache rebuild.
   \Drupal::service('plugin.manager.editor')->clearCachedDefinitions();
+}
+
+/**
+ * Adds the GeneHub absolute-URL filter to the full_html text format.
+ *
+ * The filter rewrites same-site relative URLs in <a>/<img>/<source>/<iframe>
+ * to absolute URLs using the configured `genehub.settings:public_base_url`,
+ * so JSON:API consumers do not need to prepend an origin they do not know
+ * about. Idempotent — re-running with the filter already present keeps the
+ * existing position in the filter chain.
+ */
+function _genehub_editor_ensure_absolute_url_filter(): void {
+  $format_id = GenehubEditorConstants::FULL_HTML_FORMAT;
+  $format = \Drupal::entityTypeManager()
+    ->getStorage('filter_format')
+    ->load($format_id);
+  if (!$format instanceof FilterFormat) {
+    return;
+  }
+
+  $filters = $format->filters();
+  if ($filters->has('genehub_absolute_url')) {
+    return;
+  }
+
+  // Place this filter last — any other filter that emits <img>/<a> tags
+  // must have run already, otherwise its output will not be rewritten.
+  $max_weight = 0;
+  foreach ($filters as $filter) {
+    $max_weight = max($max_weight, (int) $filter->getConfiguration()['weight']);
+  }
+
+  $filters->add([
+    'id' => 'genehub_absolute_url',
+    'status' => TRUE,
+    'weight' => $max_weight + 1,
+    'settings' => [],
+  ])->save();
+}
+
+/**
+ * Removes the GeneHub absolute-URL filter from the full_html text format.
+ *
+ * Companion of _genehub_editor_ensure_absolute_url_filter(). Idempotent.
+ */
+function _genehub_editor_remove_absolute_url_filter(): void {
+  $format = \Drupal::entityTypeManager()
+    ->getStorage('filter_format')
+    ->load(GenehubEditorConstants::FULL_HTML_FORMAT);
+  if (!$format instanceof FilterFormat) {
+    return;
+  }
+
+  $filters = $format->filters();
+  if (!$filters->has('genehub_absolute_url')) {
+    return;
+  }
+
+  $filters->get('genehub_absolute_url')->delete();
+  $format->save();
 }
