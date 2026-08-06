@@ -1,0 +1,16 @@
+diff --git a/src/Plugin/AiProvider/ChatTranslationProvider.php b/src/Plugin/AiProvider/ChatTranslationProvider.php
+--- a/src/Plugin/AiProvider/ChatTranslationProvider.php
++++ b/src/Plugin/AiProvider/ChatTranslationProvider.php
+@@ -184,9 +184,10 @@ class ChatTranslationProvider extends AiProviderClientBase implements
+     $aiConfig = $this->configFactory->get('ai_translate.settings')->get('language_settings') ?? [];
+     $prompt = NULL;
+     // Get target language-specific prompt, if it exists.
+-    if ($aiConfig[$targetLanguage->getId()]['prompt']) {
+-      $promptId = $aiConfig[$targetLanguage->getId()]['prompt'];
++    $languageSettings = is_array($aiConfig) ? ($aiConfig[$targetLanguage->getId()] ?? []) : [];
++    if (is_array($languageSettings) && !empty($languageSettings['prompt'])) {
++      $promptId = $languageSettings['prompt'];
+       if ($languageSpecificPrompt = $this->configFactory->get('ai.ai_prompt.' . $promptId)->get('prompt')) {
+         $prompt = $languageSpecificPrompt;
+       }
+     }

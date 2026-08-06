@@ -1,0 +1,40 @@
+diff --git a/src/TextExtractor.php b/src/TextExtractor.php
+--- a/src/TextExtractor.php
++++ b/src/TextExtractor.php
+@@ -5,4 +5,5 @@
+ use Drupal\Component\Utility\NestedArray;
+ use Drupal\Core\Entity\ContentEntityInterface;
+ use Drupal\Core\Entity\EntityTypeManagerInterface;
++use Drupal\Core\Field\FieldConfigInterface;
+ use Drupal\Core\Field\FieldDefinitionInterface;
+@@ -125,23 +126,16 @@
+     || $fieldDefinition->isReadOnly()) {
+       return FALSE;
+     }
+-    $fieldName = $fieldDefinition->getName();
+     $fieldType = $fieldDefinition->getType();
+-    if ($fieldDefinition->getName() === $entity->getEntityType()->getKey('label')) {
+-      return $fieldDefinition->isTranslatable();
++    if (!$fieldDefinition->isTranslatable()) {
++      return FALSE;
+     }
+-    // @todo better way to find fields that should be translatable?
+-    static $supportedFieldNames = [
+-      'body',
+-      'info',
+-      '^field_',
+-      '^layout_builder_',
+-    ];
+-    foreach ($supportedFieldNames as $pattern) {
+-      if (preg_match("/$pattern/", $fieldName)) {
+-        return $this->plugins[$fieldType]->shouldExtract($entity, $fieldDefinition);
+-      }
++    // FieldConfigInterface is required by the contrib extractor API, but base
++    // fields such as product text fields use BaseFieldDefinition instead.
++    if ($fieldDefinition instanceof FieldConfigInterface) {
++      return $this->plugins[$fieldType]->shouldExtract($entity, $fieldDefinition);
+     }
+-    return FALSE;
++    // Base entity-reference fields are not translatable content values.
++    return !in_array($fieldType, ['entity_reference', 'entity_reference_revisions'], TRUE);
+   }
