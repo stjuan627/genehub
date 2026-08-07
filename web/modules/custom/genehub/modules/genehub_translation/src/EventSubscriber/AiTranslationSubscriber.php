@@ -14,7 +14,7 @@ use Drupal\genehub_translation\TerminologyManager;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
- * Applies terminology to English-to-Chinese AI TMGMT requests.
+ * Applies terminology to English-to-Chinese AI translation requests.
  */
 final class AiTranslationSubscriber implements EventSubscriberInterface {
 
@@ -22,6 +22,11 @@ final class AiTranslationSubscriber implements EventSubscriberInterface {
    * Metadata key shared between the pre- and post-response events.
    */
   private const METADATA_KEY = 'genehub_translation';
+
+  /**
+   * AI request tags supported by this subscriber.
+   */
+  private const SUPPORTED_TAGS = ['ai_tmgmt', 'ai_translate'];
 
   /**
    * Constructs the AI translation subscriber.
@@ -45,7 +50,7 @@ final class AiTranslationSubscriber implements EventSubscriberInterface {
    * Protects matched source terms and adds request-specific instructions.
    */
   public function onPreGenerate(PreGenerateResponseEvent $event): void {
-    if (!in_array('ai_tmgmt', $event->getTags(), TRUE)) {
+    if (!$this->supportsTags($event->getTags())) {
       return;
     }
     $input = $event->getInput();
@@ -56,7 +61,9 @@ final class AiTranslationSubscriber implements EventSubscriberInterface {
     $messages = $input->getMessages();
     $system = $this->findMessage($messages, 'system');
     $user = $this->findMessage($messages, 'user');
-    if (!$system || !$user || !$this->isEnglishToChinese($system->getText())) {
+    if (!$system || !$user || !$this->isEnglishToChinese(
+      $system->getText() . "\n" . $user->getText(),
+    )) {
       return;
     }
 
@@ -111,7 +118,7 @@ final class AiTranslationSubscriber implements EventSubscriberInterface {
    * Restores protected targets and normalizes known Chinese output aliases.
    */
   public function onPostGenerate(PostGenerateResponseEvent $event): void {
-    if (!in_array('ai_tmgmt', $event->getTags(), TRUE)) {
+    if (!$this->supportsTags($event->getTags())) {
       return;
     }
     $metadata = $event->getMetadata(self::METADATA_KEY);
@@ -146,6 +153,16 @@ final class AiTranslationSubscriber implements EventSubscriberInterface {
   }
 
   /**
+   * Checks whether the request belongs to a supported translation workflow.
+   *
+   * @param string[] $tags
+   *   Request tags.
+   */
+  private function supportsTags(array $tags): bool {
+    return array_intersect(self::SUPPORTED_TAGS, $tags) !== [];
+  }
+
+  /**
    * Finds the first chat message with the requested role.
    *
    * @param \Drupal\ai\OperationType\Chat\ChatMessage[] $messages
@@ -163,11 +180,11 @@ final class AiTranslationSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * Checks the stable language-code markers in the TMGMT system prompt.
+   * Checks language markers used by the supported translation workflows.
    */
-  private function isEnglishToChinese(string $systemPrompt): bool {
-    if (preg_match('/Source language code:\s*en\b/i', $systemPrompt) === 1
-      && preg_match('/Target language code:\s*zh-hans\b/i', $systemPrompt) === 1) {
+  private function isEnglishToChinese(string $prompt): bool {
+    if (preg_match('/Source language code:\s*en\b/i', $prompt) === 1
+      && preg_match('/Target language code:\s*zh-hans\b/i', $prompt) === 1) {
       return TRUE;
     }
 
@@ -176,12 +193,21 @@ final class AiTranslationSubscriber implements EventSubscriberInterface {
     if (!$sourceName || !$targetName) {
       return FALSE;
     }
-    $pattern = sprintf(
+    $tmgmtPattern = sprintf(
       '/from\s+%s\s+into\s+%s(?:\s+language)?/iu',
       preg_quote($sourceName, '/'),
       preg_quote($targetName, '/'),
     );
-    return preg_match($pattern, $systemPrompt) === 1;
+    if (preg_match($tmgmtPattern, $prompt) === 1) {
+      return TRUE;
+    }
+
+    $aiTranslatePattern = sprintf(
+      '/source\s+language\s+%s\b[\s\S]*?target\s+language\s+%s\b/iu',
+      preg_quote($sourceName, '/'),
+      preg_quote($targetName, '/'),
+    );
+    return preg_match($aiTranslatePattern, $prompt) === 1;
   }
 
   /**

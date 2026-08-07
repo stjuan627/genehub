@@ -58,6 +58,72 @@ final class AiTranslationSubscriberTest extends UnitTestCase {
   }
 
   /**
+   * Tests terminology processing for the AI Translate prompt structure.
+   */
+  public function testAiTranslateEnglishToChineseRoundTrip(): void {
+    $subscriber = $this->createSubscriber();
+    $input = new ChatInput([
+      new ChatMessage('system', 'You are a helpful translator.'),
+      new ChatMessage(
+        'user',
+        'Translate from the source language English to the target language '
+        . 'Chinese, Simplified. The context text ```AAVPure Affinity Resin```',
+      ),
+    ]);
+    $pre = $this->createPreEvent($input, ['ai_translate']);
+
+    $subscriber->onPreGenerate($pre);
+
+    $messages = $input->getMessages();
+    $this->assertStringContainsString(
+      'The context text ```__GENEHUB_TERM_0001__```',
+      $messages[1]->getText(),
+    );
+    $this->assertStringContainsString(
+      'AAVPure Affinity Resin => AAVPure 亲和树脂',
+      $messages[0]->getText(),
+    );
+
+    $chatMessage = new ChatMessage(
+      'assistant',
+      '__GENEHUB_TERM_0001__',
+    );
+    $post = $this->createPostEvent(
+      $input,
+      $chatMessage,
+      $pre->getAllMetadata(),
+      ['ai_translate'],
+    );
+    $subscriber->onPostGenerate($post);
+
+    $this->assertSame('AAVPure 亲和树脂', $chatMessage->getText());
+  }
+
+  /**
+   * Tests that AI Translate requests in other directions are ignored.
+   */
+  public function testAiTranslateOtherDirectionIsIgnored(): void {
+    $subscriber = $this->createSubscriber();
+    $input = new ChatInput([
+      new ChatMessage('system', 'You are a helpful translator.'),
+      new ChatMessage(
+        'user',
+        'Translate from the source language English to the target language '
+        . 'Japanese. The context text ```AAVPure Affinity Resin```',
+      ),
+    ]);
+    $event = $this->createPreEvent($input, ['ai_translate']);
+
+    $subscriber->onPreGenerate($event);
+
+    $this->assertStringNotContainsString(
+      '__GENEHUB_TERM_',
+      $input->getMessages()[1]->getText(),
+    );
+    $this->assertNull($event->getMetadata('genehub_translation'));
+  }
+
+  /**
    * Tests that other translation directions are not changed.
    */
   public function testOtherDirectionIsIgnored(): void {
@@ -123,8 +189,16 @@ CSV,
 
   /**
    * Creates a pre-generation event.
+   *
+   * @param \Drupal\ai\OperationType\Chat\ChatInput $input
+   *   Chat input.
+   * @param string[] $tags
+   *   Request tags.
    */
-  private function createPreEvent(ChatInput $input): PreGenerateResponseEvent {
+  private function createPreEvent(
+    ChatInput $input,
+    array $tags = ['ai_tmgmt'],
+  ): PreGenerateResponseEvent {
     return new PreGenerateResponseEvent(
       requestThreadId: 'test-thread',
       providerId: 'echoai',
@@ -132,7 +206,7 @@ CSV,
       configuration: [],
       input: $input,
       modelId: 'test-model',
-      tags: ['ai_tmgmt'],
+      tags: $tags,
     );
   }
 
@@ -145,11 +219,14 @@ CSV,
    *   The normalized provider response message.
    * @param array<string, mixed> $metadata
    *   Metadata copied from the pre-generation event.
+   * @param string[] $tags
+   *   Request tags.
    */
   private function createPostEvent(
     ChatInput $input,
     ChatMessage $message,
     array $metadata,
+    array $tags = ['ai_tmgmt'],
   ): PostGenerateResponseEvent {
     return new PostGenerateResponseEvent(
       requestThreadId: 'test-thread',
@@ -159,7 +236,7 @@ CSV,
       input: $input,
       modelId: 'test-model',
       output: new ChatOutput($message, '', []),
-      tags: ['ai_tmgmt'],
+      tags: $tags,
       metadata: $metadata,
     );
   }
