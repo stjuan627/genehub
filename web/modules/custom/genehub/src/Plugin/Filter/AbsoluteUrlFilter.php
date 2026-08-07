@@ -285,7 +285,7 @@ final class AbsoluteUrlFilter extends FilterBase implements ContainerFactoryPlug
    * {@inheritdoc}
    */
   public function tips($long = FALSE): string {
-    return $this->t('Relative URLs inside links, images and other media are rewritten to absolute URLs against the configured public base URL.');
+    return (string) $this->t('Relative URLs inside links, images and other media are rewritten to absolute URLs against the configured public base URL.');
   }
 
 }
