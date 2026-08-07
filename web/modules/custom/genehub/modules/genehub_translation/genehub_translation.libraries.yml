@@ -1,0 +1,9 @@
+ai_source_selector:
+  css:
+    component:
+      css/ai-source-selector.css: {}
+  js:
+    js/ai-source-selector.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

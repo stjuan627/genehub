@@ -1,0 +1,22 @@
+.genehub-ai-translation-source {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-block-end: 1rem;
+}
+
+.genehub-ai-translation-source label {
+  margin: 0;
+  font-weight: 700;
+}
+
+.genehub-ai-translation-source .form-item {
+  margin: 0;
+}
+
+.genehub-ai-translation-source__select {
+  width: auto;
+  max-width: 100%;
+  min-width: 12rem;
+}

@@ -11,3 +11,8 @@ services:
       - '@language_manager'
     tags:
       - { name: event_subscriber }
+
+  genehub_translation.route_subscriber:
+    class: Drupal\genehub_translation\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber }
