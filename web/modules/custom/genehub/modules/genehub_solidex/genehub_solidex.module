@@ -9,11 +9,44 @@ declare(strict_types=1);
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
-use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\jsonapi\JsonApiFilter;
+
+/**
+ * Implements hook_product_solidex_insert().
+ */
+function genehub_solidex_product_solidex_insert(EntityInterface $entity): void {
+  _genehub_solidex_sync_product_route($entity);
+}
+
+/**
+ * Implements hook_product_solidex_update().
+ */
+function genehub_solidex_product_solidex_update(EntityInterface $entity): void {
+  _genehub_solidex_sync_product_route($entity);
+}
+
+/**
+ * Synchronizes a SOLIDEX product's legacy route.
+ */
+function _genehub_solidex_sync_product_route(EntityInterface $entity): void {
+  $products_link = $entity->hasField('products_link')
+    ? trim((string) $entity->get('products_link')->value)
+    : '';
+  $path = $products_link === '' ? '' : (string) parse_url($products_link, PHP_URL_PATH);
+  $route_path = ltrim(rtrim($path, '/'), '/');
+
+  if (!preg_match('#^i/[A-Za-z0-9][A-Za-z0-9._-]*$#', $route_path)) {
+    $cat_no = $entity->hasField('cat_no') ? trim((string) $entity->get('cat_no')->value) : '';
+    $route_path = 'i/' . $cat_no;
+  }
+
+  \Drupal::service('genehub.product_route_sync_client')->sync($entity, $route_path);
+}
 
 /**
  * Implements hook_gin_content_form_routes().

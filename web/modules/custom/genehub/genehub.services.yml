@@ -1,4 +1,11 @@
 services:
+  genehub.product_route_sync_client:
+    class: Drupal\genehub\ProductRouteSyncClient
+    arguments:
+      - '@http_client'
+      - '@config.factory'
+      - '@logger.factory'
+
   genehub.ai_openai_compatible_params_default_subscriber:
     class: Drupal\genehub\EventSubscriber\OpenAiCompatibleParamsDefaultSubscriber
     arguments:

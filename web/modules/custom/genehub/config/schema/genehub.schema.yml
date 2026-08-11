@@ -6,3 +6,16 @@ genehub.settings:
       type: string
       label: 'Public base URL'
       description: 'Absolute origin (no trailing slash) used by the AbsoluteUrlFilter to rewrite same-site relative URLs in API-served HTML. Example: https://www.example.com'
+    product_route_sync:
+      type: mapping
+      label: 'Legacy product route synchronization'
+      mapping:
+        api_url:
+          type: uri
+          label: 'API URL'
+        username:
+          type: string
+          label: 'Basic Auth username'
+        password:
+          type: string
+          label: 'Basic Auth password'

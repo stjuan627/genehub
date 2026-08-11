@@ -10,10 +10,33 @@ declare(strict_types=1);
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\jsonapi\JsonApiFilter;
+
+/**
+ * Implements hook_product_generic_insert().
+ */
+function genehub_generic_product_generic_insert(EntityInterface $entity): void {
+  _genehub_generic_sync_product_route($entity);
+}
+
+/**
+ * Implements hook_product_generic_update().
+ */
+function genehub_generic_product_generic_update(EntityInterface $entity): void {
+  _genehub_generic_sync_product_route($entity);
+}
+
+/**
+ * Synchronizes a generic product's legacy route.
+ */
+function _genehub_generic_sync_product_route(EntityInterface $entity): void {
+  $slug = $entity->hasField('slug') ? trim((string) $entity->get('slug')->value) : '';
+  \Drupal::service('genehub.product_route_sync_client')->sync($entity, 'i/' . $slug);
+}
 
 /**
  * Implements hook_gin_content_form_routes().
