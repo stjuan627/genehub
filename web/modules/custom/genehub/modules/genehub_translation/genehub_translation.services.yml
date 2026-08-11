@@ -12,6 +12,14 @@ services:
     tags:
       - { name: event_subscriber }
 
+  genehub_translation.ai_translate_request_capture_subscriber:
+    class: Drupal\genehub_translation\EventSubscriber\AiTranslateRequestCaptureSubscriber
+    arguments:
+      - '@state'
+      - '@datetime.time'
+    tags:
+      - { name: event_subscriber }
+
   genehub_translation.route_subscriber:
     class: Drupal\genehub_translation\Routing\RouteSubscriber
     tags:

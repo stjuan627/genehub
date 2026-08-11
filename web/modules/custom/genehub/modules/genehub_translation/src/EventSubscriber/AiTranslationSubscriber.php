@@ -61,8 +61,9 @@ final class AiTranslationSubscriber implements EventSubscriberInterface {
     $messages = $input->getMessages();
     $system = $this->findMessage($messages, 'system');
     $user = $this->findMessage($messages, 'user');
-    if (!$system || !$user || !$this->isEnglishToChinese(
-      $system->getText() . "\n" . $user->getText(),
+    $systemPrompt = $system?->getText() ?? $input->getSystemPrompt() ?? '';
+    if (!$user || !$this->isEnglishToChinese(
+      $systemPrompt . "\n" . $user->getText(),
     )) {
       return;
     }
@@ -93,7 +94,6 @@ final class AiTranslationSubscriber implements EventSubscriberInterface {
     if ($placeholders !== []) {
       $user->setText($translatedInput);
       $instructions = [
-        '',
         'GeneHub terminology requirements:',
         '- Tokens matching __GENEHUB_TERM_0000__ are immutable placeholders. Copy every placeholder exactly once and do not translate, edit, split, or remove it.',
         '- Preserve HTML tags, attributes, URLs, product codes, whitespace inside tags, and placeholder order.',
@@ -103,7 +103,15 @@ final class AiTranslationSubscriber implements EventSubscriberInterface {
       foreach ($matchedTerms as $source => $target) {
         $instructions[] = sprintf('- %s => %s', $source, $target);
       }
-      $system->setText(rtrim($system->getText()) . "\n" . implode("\n", $instructions));
+      if ($system) {
+        $system->setText(rtrim($system->getText()) . "\n\n" . implode("\n", $instructions));
+      }
+      else {
+        $user->setText($this->insertBeforeFinalInstruction(
+          $user->getText(),
+          implode("\n", $instructions),
+        ));
+      }
       $input->setMessages($messages);
       $event->setInput($input);
     }
@@ -112,6 +120,24 @@ final class AiTranslationSubscriber implements EventSubscriberInterface {
       'english_to_chinese' => TRUE,
       'placeholders' => $placeholders,
     ]);
+  }
+
+  /**
+   * Inserts request-specific requirements before the prompt's final rule.
+   */
+  private function insertBeforeFinalInstruction(string $prompt, string $instructions): string {
+    $updated = preg_replace(
+      '/^(\s*8\.\s)/mu',
+      $instructions . "\n$1",
+      $prompt,
+      1,
+      $count,
+    );
+    if ($updated !== NULL && $count === 1) {
+      return $updated;
+    }
+
+    return $instructions . "\n" . ltrim($prompt);
   }
 
   /**
