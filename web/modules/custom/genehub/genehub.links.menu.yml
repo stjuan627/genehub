@@ -12,6 +12,13 @@ genehub.products_settings:
   parent: system.admin_structure
   weight: 10
 
+genehub.product_route_sync_settings:
+  title: 'Legacy route synchronization'
+  description: 'Configure product route synchronization with the legacy site.'
+  route_name: genehub.product_route_sync_settings
+  parent: genehub.products_settings
+  weight: 20
+
 genehub.navigation.products:
   title: 'Products'
   description: 'Manage product entities provided by GeneHub modules.'

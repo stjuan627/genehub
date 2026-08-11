@@ -27,3 +27,13 @@ genehub.products_settings:
     _permission: 'administer site configuration'
   options:
     _admin_route: TRUE
+
+genehub.product_route_sync_settings:
+  path: '/admin/structure/products/route-sync'
+  defaults:
+    _form: '\Drupal\genehub\Form\ProductRouteSyncSettingsForm'
+    _title: 'Legacy route synchronization'
+  requirements:
+    _permission: 'administer site configuration'
+  options:
+    _admin_route: TRUE
