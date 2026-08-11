@@ -4,4 +4,6 @@ description: Provides shared GeneHub functionality.
 package: Custom
 core_version_requirement: ^11
 dependencies:
+  - drupal:node
+  - drupal:path
   - drupal:text

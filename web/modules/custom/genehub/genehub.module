@@ -1,0 +1,68 @@
+<?php
+
+/**
+ * @file
+ * Provides hooks for the GeneHub parent module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\EntityFormInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for node forms.
+ */
+function genehub_form_node_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  $form_object = $form_state->getFormObject();
+  if (!$form_object instanceof EntityFormInterface) {
+    return;
+  }
+
+  $node = $form_object->getEntity();
+  if (!$node instanceof NodeInterface || $node->bundle() !== 'page') {
+    return;
+  }
+
+  $form['path']['genehub_route_sync_enabled'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Synchronize URL alias to the legacy site'),
+    '#default_value' => FALSE,
+    '#parents' => ['genehub_route_sync_enabled'],
+    '#weight' => 40,
+  ];
+
+  foreach ($form['actions'] as $action_name => &$action) {
+    if ($action_name !== 'preview' && ($action['#type'] ?? NULL) === 'submit' && isset($action['#submit'])) {
+      $action['#submit'][] = 'genehub_basic_page_route_sync_submit';
+    }
+  }
+}
+
+/**
+ * Synchronizes a saved Basic Page alias when explicitly requested.
+ */
+function genehub_basic_page_route_sync_submit(array &$form, FormStateInterface $form_state): void {
+  if (!$form_state->getValue('genehub_route_sync_enabled')) {
+    return;
+  }
+
+  $form_object = $form_state->getFormObject();
+  if (!$form_object instanceof EntityFormInterface) {
+    return;
+  }
+
+  $node = $form_object->getEntity();
+  if (!$node instanceof NodeInterface || $node->bundle() !== 'page' || $node->isNew()) {
+    return;
+  }
+
+  $source_path = '/node/' . $node->id();
+  $alias_manager = \Drupal::service('path_alias.manager');
+  $alias_manager->cacheClear($source_path);
+  $alias = $alias_manager->getAliasByPath($source_path, $node->language()->getId());
+
+  \Drupal::service('genehub.product_route_sync_client')
+    ->sync($node, $alias, 'basic_page');
+}

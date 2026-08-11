@@ -16,6 +16,7 @@ use Psr\Log\LoggerInterface;
 final class ProductRouteSyncClient {
 
   private const SUPPORTED_ENTITY_TYPES = [
+    'basic_page',
     'product_generic',
     'product_solidex',
   ];
@@ -39,9 +40,9 @@ final class ProductRouteSyncClient {
   /**
    * Synchronizes one product route without interrupting entity persistence.
    */
-  public function sync(EntityInterface $entity, string $routePath): void {
+  public function sync(EntityInterface $entity, string $routePath, ?string $syncEntityType = NULL): void {
     try {
-      $entityType = $entity->getEntityTypeId();
+      $entityType = $syncEntityType ?? $entity->getEntityTypeId();
       $entityUuid = $entity->uuid();
       $routePath = ltrim(trim($routePath), '/');
 
@@ -90,7 +91,7 @@ final class ProductRouteSyncClient {
       $this->logger->error(
         'Failed to synchronize the legacy route for @entity_type @entity_id: @message',
         [
-          '@entity_type' => $entity->getEntityTypeId(),
+          '@entity_type' => $syncEntityType ?? $entity->getEntityTypeId(),
           '@entity_id' => $entity->id() ?? 'new',
           '@message' => $exception->getMessage(),
         ],
