@@ -144,10 +144,8 @@ final class GenericProduct extends ContentEntityBase implements EntityOwnerInter
       ->setRequired(FALSE)
       ->setTranslatable(FALSE)
       ->setSetting('allowed_values', [
-        'aav_purification' => t('AAV purification'),
-        'aav_titration' => t('AAV titration'),
-        'car_detection_antibody' => t('CAR detection antibody'),
-        'other' => t('Other'),
+        'common' => t('Common'),
+        'aav' => t('AAV PurproX/TrueX'),
       ])
       ->setDisplayOptions('view', [
         'label' => 'above',
