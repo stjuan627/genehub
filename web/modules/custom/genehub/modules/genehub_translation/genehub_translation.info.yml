@@ -8,3 +8,4 @@ dependencies:
   - ai_translate:ai_translate
   - ai_tmgmt:ai_tmgmt
   - genehub:genehub
+  - drupal:jsonapi
