@@ -133,6 +133,7 @@ final class SolidexProductForm extends ContentEntityForm {
       'format',
       'size',
       'units',
+      'storage',
       'cell_population',
       'components',
     ] as $field_name) {
