@@ -175,7 +175,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
     $fields['bead_type'] = static::stringField(t('Bead type'), FALSE, FALSE, 5);
     $fields['format'] = static::stringField(t('Format'), FALSE, FALSE, 10);
     $fields['key_feature'] = static::formattedLongTextField(t('Key feature'), FALSE, TRUE, 15);
-    $fields['specs'] = static::formattedLongTextField(t('Specs'), FALSE, TRUE, 16);
+    $fields['specs'] = static::formattedLongTextField(t('Specs'), FALSE, TRUE, 16, 100);
     $fields['size'] = static::stringField(t('Size'), FALSE, FALSE, 20);
     $fields['units'] = static::stringField(t('Units'), FALSE, FALSE, 25);
     $fields['storage'] = static::plainLongTextField(t('Storage'), FALSE, FALSE, 26);
@@ -275,7 +275,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
   /**
    * Creates a formatted long text base field.
    */
-  private static function formattedLongTextField(TranslatableMarkup $label, bool $required, bool $translatable, int $weight): BaseFieldDefinition {
+  private static function formattedLongTextField(TranslatableMarkup $label, bool $required, bool $translatable, int $weight, ?int $form_weight = NULL): BaseFieldDefinition {
     return BaseFieldDefinition::create('text_long')
       ->setLabel($label)
       ->setRequired($required)
@@ -289,7 +289,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setDisplayConfigurable('view', TRUE)
       ->setDisplayOptions('form', [
         'type' => 'text_textarea',
-        'weight' => $weight,
+        'weight' => $form_weight ?? $weight,
         'settings' => [
           'rows' => 5,
         ],
