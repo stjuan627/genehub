@@ -28,6 +28,7 @@
         "drupal/core-recipe-unpack": "~11.3.0",
         "drupal/core-recommended": "~11.3.0",
         "drupal/devel_entity_updates": "^5.0",
+        "drupal/entity_clone": "^2.2@beta",
         "drupal/field_group": "^4.0",
         "drupal/gin": "^5.0",
         "drupal/gin_toolbar": "^3.0",
