@@ -166,6 +166,7 @@ final class SolidexProductForm extends ContentEntityForm {
       'application',
       'application_detail',
       'key_feature',
+      'specs',
       'protocol',
       'background',
     ] as $field_name) {
