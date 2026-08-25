@@ -136,6 +136,7 @@ final class SolidexProductForm extends ContentEntityForm {
       'storage',
       'cell_population',
       'components',
+      'specs',
     ] as $field_name) {
       if (isset($form[$field_name])) {
         $form[$field_name]['#group'] = 'specifications';
@@ -166,7 +167,6 @@ final class SolidexProductForm extends ContentEntityForm {
       'application',
       'application_detail',
       'key_feature',
-      'specs',
       'protocol',
       'background',
     ] as $field_name) {
