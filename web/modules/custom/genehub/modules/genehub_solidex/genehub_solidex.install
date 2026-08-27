@@ -1,0 +1,58 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for the GeneHub SOLIDEX module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Migrates the Storage field from a short string to a long plain-text field.
+ *
+ * The field may already contain product data, so the database column is
+ * changed explicitly before the entity definition is recorded as updated.
+ */
+function genehub_solidex_update_11001(): void {
+  $entity_type_id = 'product_solidex';
+  $field_name = 'storage';
+  $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
+  $field_storage_definitions = \Drupal::service('entity_field.manager')
+    ->getFieldStorageDefinitions($entity_type_id);
+  $storage_definition = $field_storage_definitions[$field_name] ?? NULL;
+
+  if ($storage_definition === NULL) {
+    return;
+  }
+
+  $database_schema = \Drupal::database()->schema();
+  $data_table = $entity_type->getDataTable();
+  $field_exists = $database_schema->tableExists($data_table)
+    && $database_schema->fieldExists($data_table, $field_name);
+
+  if ($field_exists) {
+    // Keep existing values while widening varchar(255) to longtext.
+    $database_schema->changeField($data_table, $field_name, $field_name, [
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+    ]);
+    // The column change was handled above; Drupal should only persist the
+    // updated field schema and installed definition from this point on.
+    $storage_definition->setSetting('column_changes_handled', TRUE);
+  }
+
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  if ($entity_definition_update_manager->getFieldStorageDefinition($field_name, $entity_type_id) !== NULL) {
+    $entity_definition_update_manager->updateFieldStorageDefinition($storage_definition);
+  }
+  else {
+    $entity_definition_update_manager->installFieldStorageDefinition(
+      $field_name,
+      $entity_type_id,
+      'genehub_solidex',
+      $storage_definition,
+    );
+  }
+}
+
