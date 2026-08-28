@@ -130,8 +130,8 @@ final class GenericProduct extends ContentEntityBase implements EntityOwnerInter
       ->addConstraint('UniqueField')
       ->addPropertyConstraints('value', [
         'Regex' => [
-          'pattern' => '/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
-          'message' => t('The slug may only contain lowercase letters, numbers and hyphens.'),
+          'pattern' => '/^[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$/',
+          'message' => t('The slug may only contain letters, numbers and hyphens.'),
         ],
       ]);
 
