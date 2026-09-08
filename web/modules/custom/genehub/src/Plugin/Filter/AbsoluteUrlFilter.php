@@ -15,16 +15,14 @@ use Drupal\filter\Plugin\FilterInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Rewrites same-site relative URLs in <a>/<img>/<source>/<iframe> to absolute.
+ * Rewrites same-site relative URLs in <img>/<source>/<iframe>/etc. to absolute.
  *
  * Intended to be added near the bottom of the filter chain for text formats
  * that are served through JSON:API (or any other API where the front-end has
  * no Drupal request context to resolve `/sites/default/files/...` against).
  *
- * Without this filter, CKEditor emits `<a href="/node/1">` or
- * `<img src="/sites/default/files/foo.png">`; on a decoupled site those
- * relative paths break unless the front-end prepends an origin it does not
- * know about.
+ * Relative links (`<a href="...">`) are left untouched so front-end routers
+ * or decoupled consumers can handle internal paths directly.
  *
  * The base origin comes from `genehub.settings:public_base_url`, falling
  * back to the current request's scheme + host when unset. Configuring an
@@ -42,7 +40,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 #[Filter(
   id: "genehub_absolute_url",
   title: new TranslatableMarkup("Convert same-site relative URLs to absolute"),
-  description: new TranslatableMarkup("Rewrites relative paths in src/href/srcset/poster/data-src to absolute URLs using the configured public base URL. Useful for decoupled consumers (JSON:API, RSS) that cannot resolve /sites/default/.../ from the request."),
+  description: new TranslatableMarkup("Rewrites relative paths in media elements (src/srcset/poster/data-src, excluding a:href) to absolute URLs using the configured public base URL."),
   type: FilterInterface::TYPE_TRANSFORM_REVERSIBLE,
   weight: 100,
   status: TRUE,
@@ -168,10 +166,16 @@ final class AbsoluteUrlFilter extends FilterBase implements ContainerFactoryPlug
     $dom = Html::load($text);
     $xpath = new \DOMXPath($dom);
 
-    foreach ($xpath->query('//*[@src or @href or @poster or @data-src or @cite or @srcset]') as $node) {
+    foreach ($xpath->query('//*[@src or (@href and not(self::a)) or @poster or @data-src or @cite or @srcset]') as $node) {
       assert($node instanceof \DOMElement);
 
+      // Do not rewrite href on <a> tags.
+      $is_anchor = strcasecmp($node->tagName, 'a') === 0;
+
       foreach (self::URL_ATTRIBUTES as $attr => $_unused) {
+        if ($is_anchor && $attr === 'href') {
+          continue;
+        }
         if (!$node->hasAttribute($attr)) {
           continue;
         }
@@ -285,7 +289,7 @@ final class AbsoluteUrlFilter extends FilterBase implements ContainerFactoryPlug
    * {@inheritdoc}
    */
   public function tips($long = FALSE): string {
-    return (string) $this->t('Relative URLs inside links, images and other media are rewritten to absolute URLs against the configured public base URL.');
+    return (string) $this->t('Relative URLs inside images and other media elements (excluding links) are rewritten to absolute URLs against the configured public base URL.');
   }
 
 }
