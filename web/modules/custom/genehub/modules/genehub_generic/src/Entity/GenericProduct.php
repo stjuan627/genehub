@@ -146,6 +146,7 @@ final class GenericProduct extends ContentEntityBase implements EntityOwnerInter
       ->setSetting('allowed_values', [
         'common' => t('Common'),
         'aav' => t('AAV PurproX/TrueX'),
+        'solidex_cdex' => t('Solidex CDEx'),
       ])
       ->setDisplayOptions('view', [
         'label' => 'above',
