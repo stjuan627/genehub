@@ -1,0 +1,58 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for the GeneHub Generic Product module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Converts existing generic products to the first revision of each entity.
+ */
+function genehub_generic_update_11001(array &$sandbox): void {
+  $entity_type_id = 'product_generic';
+  $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
+  $field_storage_definitions = \Drupal::service('entity_field.manager')
+    ->getFieldStorageDefinitions($entity_type_id);
+
+  \Drupal::entityDefinitionUpdateManager()->updateFieldableEntityType(
+    $entity_type,
+    $field_storage_definitions,
+    $sandbox,
+  );
+}
+
+/**
+ * Backfills metadata for the initial generic product revisions.
+ */
+function genehub_generic_update_11002(): void {
+  $entity_type_id = 'product_generic';
+  $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
+  $database = \Drupal::database();
+  $schema = $database->schema();
+  $revision_table = $entity_type->getRevisionTable();
+  $data_table = $entity_type->getDataTable();
+
+  if (!$schema->tableExists($revision_table) || !$schema->tableExists($data_table)) {
+    return;
+  }
+
+  $initial_revision_log = 'Initial revision migrated from existing entity data.';
+  $request_time = \Drupal::time()->getRequestTime();
+  $rows = $database->select($data_table, 'data')
+    ->fields('data', ['id', 'uid', 'created', 'changed'])
+    ->execute();
+
+  foreach ($rows as $row) {
+    $database->update($revision_table)
+      ->fields([
+        'revision_uid' => $row->uid !== NULL ? (int) $row->uid : NULL,
+        'revision_timestamp' => (int) ($row->changed ?: $row->created ?: $request_time),
+        'revision_log' => $initial_revision_log,
+      ])
+      ->condition('revision_id', (int) $row->id)
+      ->condition('revision_timestamp', NULL, 'IS NULL')
+      ->execute();
+  }
+}

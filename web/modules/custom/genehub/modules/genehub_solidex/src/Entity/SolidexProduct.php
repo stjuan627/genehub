@@ -5,15 +5,16 @@ declare(strict_types=1);
 namespace Drupal\genehub_solidex\Entity;
 
 use Drupal\content_translation\ContentTranslationHandler;
-use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\Attribute\ContentEntityType;
-use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Entity\EditorialContentEntityBase;
 use Drupal\Core\Entity\ContentEntityDeleteForm;
-use Drupal\Core\Entity\EntityChangedTrait;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityViewBuilder;
 use Drupal\Core\Entity\Form\DeleteMultipleForm;
+use Drupal\Core\Entity\Form\RevisionDeleteForm;
+use Drupal\Core\Entity\Form\RevisionRevertForm;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
+use Drupal\Core\Entity\Routing\RevisionHtmlRouteProvider;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\genehub_solidex\SolidexProductAccessControlHandler;
@@ -34,6 +35,7 @@ use Drupal\user\EntityOwnerTrait;
   entity_keys: [
     'id' => 'id',
     'uuid' => 'uuid',
+    'revision' => 'revision_id',
     'label' => 'product_name',
     'langcode' => 'langcode',
     'owner' => 'uid',
@@ -48,9 +50,12 @@ use Drupal\user\EntityOwnerTrait;
       'edit' => SolidexProductForm::class,
       'delete' => ContentEntityDeleteForm::class,
       'delete-multiple-confirm' => DeleteMultipleForm::class,
+      'revision-revert' => RevisionRevertForm::class,
+      'revision-delete' => RevisionDeleteForm::class,
     ],
     'route_provider' => [
       'html' => AdminHtmlRouteProvider::class,
+      'revision' => RevisionHtmlRouteProvider::class,
     ],
     'translation' => ContentTranslationHandler::class,
   ],
@@ -61,6 +66,10 @@ use Drupal\user\EntityOwnerTrait;
     'edit-form' => '/admin/content/products/solidex/{product_solidex}/edit',
     'delete-form' => '/admin/content/products/solidex/{product_solidex}/delete',
     'delete-multiple-form' => '/admin/content/products/solidex/delete-multiple',
+    'version-history' => '/admin/content/products/solidex/{product_solidex}/revisions',
+    'revision' => '/admin/content/products/solidex/{product_solidex}/revisions/{product_solidex_revision}/view',
+    'revision-revert-form' => '/admin/content/products/solidex/{product_solidex}/revisions/{product_solidex_revision}/revert',
+    'revision-delete-form' => '/admin/content/products/solidex/{product_solidex}/revisions/{product_solidex_revision}/delete',
     'drupal:content-translation-overview' => '/admin/content/products/solidex/{product_solidex}/translations',
     'drupal:content-translation-add' => '/admin/content/products/solidex/{product_solidex}/translations/add/{source}/{target}',
     'drupal:content-translation-edit' => '/admin/content/products/solidex/{product_solidex}/translations/edit/{language}',
@@ -69,12 +78,19 @@ use Drupal\user\EntityOwnerTrait;
   admin_permission: 'administer solidex products',
   base_table: 'product_solidex',
   data_table: 'product_solidex_field_data',
+  revision_table: 'product_solidex_revision',
+  revision_data_table: 'product_solidex_field_revision',
   field_ui_base_route: 'entity.product_solidex.settings',
+  show_revision_ui: TRUE,
+  revision_metadata_keys: [
+    'revision_user' => 'revision_uid',
+    'revision_created' => 'revision_timestamp',
+    'revision_log_message' => 'revision_log',
+  ],
   translatable: TRUE,
 )]
-final class SolidexProduct extends ContentEntityBase implements EntityOwnerInterface, EntityPublishedInterface {
+final class SolidexProduct extends EditorialContentEntityBase implements EntityOwnerInterface {
 
-  use EntityChangedTrait;
   use EntityOwnerTrait;
 
   /**
@@ -88,6 +104,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setSetting('target_type', 'user')
       ->setDefaultValueCallback(static::class . '::getDefaultEntityOwner')
       ->setTranslatable(FALSE)
+      ->setRevisionable(TRUE)
       ->setDisplayOptions('form', [
         'type' => 'entity_reference_autocomplete',
         'weight' => 90,
@@ -103,6 +120,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setLabel(t('Published'))
       ->setDefaultValue(TRUE)
       ->setTranslatable(FALSE)
+      ->setRevisionable(TRUE)
       ->setDisplayOptions('form', [
         'type' => 'boolean_checkbox',
         'weight' => 95,
@@ -112,6 +130,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Created'))
       ->setTranslatable(FALSE)
+      ->setRevisionable(TRUE)
       ->setDisplayOptions('form', [
         'type' => 'datetime_timestamp',
         'weight' => 10,
@@ -120,7 +139,8 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
 
     $fields['changed'] = BaseFieldDefinition::create('changed')
       ->setLabel(t('Changed'))
-      ->setTranslatable(FALSE);
+      ->setTranslatable(FALSE)
+      ->setRevisionable(TRUE);
 
     $fields['product_name'] = static::stringField(t('Product name'), TRUE, TRUE, -50)
       ->setDescription(t('The product name used as the entity label.'));
@@ -131,6 +151,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setDescription(t('The primary product image.'))
       ->setRequired(FALSE)
       ->setTranslatable(TRUE)
+      ->setRevisionable(TRUE)
       ->setSetting('uri_scheme', 'public')
       ->setSetting('file_directory', 'genehub/products/solidex/images')
       ->setSetting('file_extensions', 'png jpg jpeg webp')
@@ -185,6 +206,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setCardinality(BaseFieldDefinition::CARDINALITY_UNLIMITED)
       ->setRequired(FALSE)
       ->setTranslatable(TRUE)
+      ->setRevisionable(TRUE)
       ->setDisplayOptions('view', [
         'label' => 'above',
         'type' => 'genehub_sales_unit_default',
@@ -203,6 +225,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setCardinality(BaseFieldDefinition::CARDINALITY_UNLIMITED)
       ->setRequired(FALSE)
       ->setTranslatable(FALSE)
+      ->setRevisionable(TRUE)
       ->setDisplayOptions('view', [
         'label' => 'above',
         'type' => 'basic_string',
@@ -234,6 +257,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setLabel($label)
       ->setRequired($required)
       ->setTranslatable($translatable)
+      ->setRevisionable(TRUE)
       ->setSetting('max_length', 255)
       ->setDisplayOptions('view', [
         'label' => 'above',
@@ -256,6 +280,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setLabel($label)
       ->setRequired($required)
       ->setTranslatable($translatable)
+      ->setRevisionable(TRUE)
       ->setDisplayOptions('view', [
         'label' => 'above',
         'type' => 'basic_string',
@@ -280,6 +305,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setLabel($label)
       ->setRequired($required)
       ->setTranslatable($translatable)
+      ->setRevisionable(TRUE)
       ->setSetting('allowed_formats', ['full_html'])
       ->setDisplayOptions('view', [
         'label' => 'above',
@@ -306,6 +332,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setDescription($description)
       ->setRequired(FALSE)
       ->setTranslatable(TRUE)
+      ->setRevisionable(TRUE)
       ->setSetting('uri_scheme', 'public')
       ->setSetting('file_directory', $directory)
       ->setSetting('file_extensions', 'pdf')
@@ -340,6 +367,7 @@ final class SolidexProduct extends ContentEntityBase implements EntityOwnerInter
       ->setRequired(FALSE)
       ->setTranslatable(TRUE)
       ->setCardinality(BaseFieldDefinition::CARDINALITY_UNLIMITED)
+      ->setRevisionable(TRUE)
       ->setSetting('uri_scheme', 'public')
       ->setSetting('file_directory', $directory)
       ->setSetting('file_extensions', 'pdf')
