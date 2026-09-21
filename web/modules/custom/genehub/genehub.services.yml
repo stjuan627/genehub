@@ -12,3 +12,8 @@ services:
       - '@config.factory'
     tags:
       - { name: event_subscriber }
+
+  genehub.workspace_id_negotiator:
+    class: Drupal\genehub\Workspace\WorkspaceIdNegotiator
+    tags:
+      - { name: workspace_negotiator, priority: 150 }
