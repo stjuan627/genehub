@@ -168,6 +168,8 @@ final class GenericProduct extends EditorialContentEntityBase implements EntityO
         'common' => t('Common'),
         'aav' => t('AAV PurproX/TrueX'),
         'solidex_cdex' => t('Solidex CDEx'),
+        'car_x' => t('CAR-X'),
+        'inn' => t('INN'),
       ])
       ->setDisplayOptions('view', [
         'label' => 'above',

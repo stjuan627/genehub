@@ -56,3 +56,15 @@ function genehub_generic_update_11002(): void {
       ->execute();
   }
 }
+
+/**
+ * Updates the allowed values of product_kind to include INN.
+ */
+function genehub_generic_update_11003(): void {
+  $field_storage_definition = \Drupal::service('entity_field.manager')
+    ->getFieldStorageDefinitions('product_generic')['product_kind'] ?? NULL;
+
+  if ($field_storage_definition !== NULL) {
+    \Drupal::entityDefinitionUpdateManager()->updateFieldStorageDefinition($field_storage_definition);
+  }
+}
