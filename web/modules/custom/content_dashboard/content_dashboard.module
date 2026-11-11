@@ -1,0 +1,61 @@
+<?php
+
+/**
+ * @file
+ * Primary module hooks for the Content Dashboard module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_node_insert().
+ */
+function content_dashboard_node_insert(NodeInterface $node): void {
+  $config = \Drupal::config('content_dashboard.settings');
+  if (!$config->get('enabled')) {
+    return;
+  }
+
+  $trackedBundles = (array) $config->get('tracked_bundles');
+  if (!empty($trackedBundles) && !in_array($node->bundle(), $trackedBundles, TRUE)) {
+    return;
+  }
+
+  /** @var \Drupal\content_dashboard\Service\MajorChangeDetector $detector */
+  $detector = \Drupal::service('content_dashboard.change_detector');
+  /** @var \Drupal\content_dashboard\Service\ChangeLogRepository $repository */
+  $repository = \Drupal::service('content_dashboard.change_log_repository');
+
+  // Initial creation has no previous version.
+  $analysis = $detector->analyze($node, NULL);
+  $repository->recordChange($node, NULL, $analysis);
+}
+
+/**
+ * Implements hook_node_update().
+ */
+function content_dashboard_node_update(NodeInterface $node): void {
+  $config = \Drupal::config('content_dashboard.settings');
+  if (!$config->get('enabled')) {
+    return;
+  }
+
+  $trackedBundles = (array) $config->get('tracked_bundles');
+  if (!empty($trackedBundles) && !in_array($node->bundle(), $trackedBundles, TRUE)) {
+    return;
+  }
+
+  /** @var \Drupal\node\NodeInterface|null $original */
+  $original = $node->original ?? NULL;
+
+  /** @var \Drupal\content_dashboard\Service\MajorChangeDetector $detector */
+  $detector = \Drupal::service('content_dashboard.change_detector');
+  /** @var \Drupal\content_dashboard\Service\ChangeLogRepository $repository */
+  $repository = \Drupal::service('content_dashboard.change_log_repository');
+
+  $prevVid = $original ? (int) $original->getRevisionId() : NULL;
+  $analysis = $detector->analyze($node, $original);
+  $repository->recordChange($node, $prevVid, $analysis);
+}

@@ -1,0 +1,10 @@
+services:
+  content_dashboard.commands:
+    class: Drupal\content_dashboard\Commands\ContentDashboardCommands
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@content_dashboard.change_detector'
+      - '@content_dashboard.change_log_repository'
+    tags:
+      - { name: drush.command }

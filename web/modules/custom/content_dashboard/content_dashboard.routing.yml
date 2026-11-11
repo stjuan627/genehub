@@ -1,0 +1,34 @@
+content_dashboard.settings:
+  path: '/admin/config/services/content-dashboard'
+  defaults:
+    _form: '\Drupal\content_dashboard\Form\ContentDashboardSettingsForm'
+    _title: 'Content Dashboard Settings'
+  requirements:
+    _permission: 'administer content dashboard'
+
+content_dashboard.api.updates:
+  path: '/api/v1/content-dashboard/updates'
+  defaults:
+    _controller: '\Drupal\content_dashboard\Controller\ContentDashboardApiController::getUpdates'
+  methods: [GET]
+  requirements:
+    # Access is authenticated in the controller via X-API-KEY header token.
+    _access: 'TRUE'
+
+content_dashboard.api.node_history:
+  path: '/api/v1/content-dashboard/nodes/{nid}/history'
+  defaults:
+    _controller: '\Drupal\content_dashboard\Controller\ContentDashboardApiController::getNodeHistory'
+  methods: [GET]
+  requirements:
+    # Access is authenticated in the controller via X-API-KEY header token.
+    _access: 'TRUE'
+
+content_dashboard.api.diff:
+  path: '/api/v1/content-dashboard/nodes/{nid}/diff/{vid}'
+  defaults:
+    _controller: '\Drupal\content_dashboard\Controller\ContentDashboardApiController::getDiff'
+  methods: [GET]
+  requirements:
+    # Access is authenticated in the controller via X-API-KEY header token.
+    _access: 'TRUE'

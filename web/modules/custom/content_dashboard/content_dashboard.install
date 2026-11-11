@@ -1,0 +1,156 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the content_dashboard module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_schema().
+ */
+function content_dashboard_schema(): array {
+  $schema['content_change_log'] = [
+    'description' => 'Stores change audit events and major modification metrics for nodes.',
+    'fields' => [
+      'id' => [
+        'description' => 'Primary key.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'nid' => [
+        'description' => 'The node ID.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'vid' => [
+        'description' => 'The revision ID of this change.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'prev_vid' => [
+        'description' => 'The previous revision ID compared against.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'langcode' => [
+        'description' => 'Language code of the revision.',
+        'type' => 'varchar',
+        'length' => 12,
+        'not null' => TRUE,
+        'default' => 'en',
+      ],
+      'bundle' => [
+        'description' => 'The node bundle/type.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'is_major' => [
+        'description' => 'Whether this change is classified as a major change (1) or minor (0).',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'change_flags' => [
+        'description' => 'Comma-separated change event flags (e.g. created,title,h1,body_major,status).',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'title' => [
+        'description' => 'Title of the node at this revision.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'slug' => [
+        'description' => 'Clean slug identifier of the node.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'url' => [
+        'description' => 'Absolute canonical public URL of the node.',
+        'type' => 'varchar',
+        'length' => 512,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'author_uid' => [
+        'description' => 'User ID of the editor who made this change.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'summary' => [
+        'description' => 'Human-readable summary of the detected changes.',
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => FALSE,
+      ],
+      'metrics' => [
+        'description' => 'JSON formatted quantitative diff metrics.',
+        'type' => 'text',
+        'size' => 'medium',
+        'not null' => FALSE,
+      ],
+      'created' => [
+        'description' => 'Timestamp when this change was committed.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'idx_nid_created' => ['nid', 'created'],
+      'idx_is_major_created' => ['is_major', 'created'],
+      'idx_bundle_created' => ['bundle', 'created'],
+      'idx_created' => ['created'],
+      'idx_vid' => ['vid'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Add slug and url fields to the content_change_log table.
+ */
+function content_dashboard_update_10001(): void {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->fieldExists('content_change_log', 'slug')) {
+    $schema->addField('content_change_log', 'slug', [
+      'description' => 'Clean slug identifier of the node.',
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => TRUE,
+      'default' => '',
+    ]);
+  }
+  if (!$schema->fieldExists('content_change_log', 'url')) {
+    $schema->addField('content_change_log', 'url', [
+      'description' => 'Absolute canonical public URL of the node.',
+      'type' => 'varchar',
+      'length' => 512,
+      'not null' => TRUE,
+      'default' => '',
+    ]);
+  }
+}
