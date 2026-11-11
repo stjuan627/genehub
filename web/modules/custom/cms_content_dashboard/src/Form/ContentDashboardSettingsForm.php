@@ -32,6 +32,8 @@ class ContentDashboardSettingsForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $config = $this->config('cms_content_dashboard.settings');
 
+    $form['#attached']['library'][] = 'cms_content_dashboard/key_generator';
+
     $form['enabled'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Enable Content Dashboard API and tracking'),
@@ -44,6 +46,34 @@ class ContentDashboardSettingsForm extends ConfigFormBase {
       '#description' => $this->t('The secret token expected in the X-API-KEY request header.'),
       '#default_value' => $config->get('api_key') ?? '',
       '#required' => TRUE,
+      '#attributes' => [
+        'class' => ['js-api-key-input'],
+      ],
+    ];
+
+    $form['api_key_actions'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['api-key-actions-wrapper']],
+    ];
+
+    $form['api_key_actions']['generate'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'button',
+      '#value' => $this->t('Generate Random Key'),
+      '#attributes' => [
+        'type' => 'button',
+        'class' => ['button', 'button--secondary', 'js-generate-api-key'],
+      ],
+    ];
+
+    $form['api_key_actions']['copy'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'button',
+      '#value' => $this->t('Copy Key'),
+      '#attributes' => [
+        'type' => 'button',
+        'class' => ['button', 'button--secondary', 'js-copy-api-key'],
+      ],
     ];
 
     $form['thresholds'] = [

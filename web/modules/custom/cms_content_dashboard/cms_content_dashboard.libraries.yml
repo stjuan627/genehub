@@ -1,0 +1,10 @@
+key_generator:
+  version: 1.0.0
+  js:
+    js/key-generator.js: {}
+  css:
+    theme:
+      css/key-generator.css: {}
+  dependencies:
+    - core/drupal
+    - core/once

@@ -1,0 +1,15 @@
+/**
+ * @file
+ * Styling for the API key generator controls.
+ */
+
+.api-key-actions-wrapper {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.js-api-key-input {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
