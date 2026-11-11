@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Drupal\content_dashboard\Service;
+namespace Drupal\cms_content_dashboard\Service;
 
-use Drupal\content_dashboard\Model\ChangeAnalysisResult;
+use Drupal\cms_content_dashboard\Model\ChangeAnalysisResult;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\node\NodeInterface;
 
@@ -27,7 +27,7 @@ class MajorChangeDetector {
    *   The config factory service.
    */
   public function __construct(ConfigFactoryInterface $configFactory) {
-    $this->config = $configFactory->get('content_dashboard.settings');
+    $this->config = $configFactory->get('cms_content_dashboard.settings');
   }
 
   /**
@@ -38,7 +38,7 @@ class MajorChangeDetector {
    * @param \Drupal\node\NodeInterface|null $previous
    *   The previous node revision, or NULL if this is initial creation.
    *
-   * @return \Drupal\content_dashboard\Model\ChangeAnalysisResult
+   * @return \Drupal\cms_content_dashboard\Model\ChangeAnalysisResult
    *   The quantitative analysis result.
    */
   public function analyze(NodeInterface $current, ?NodeInterface $previous = NULL): ChangeAnalysisResult {

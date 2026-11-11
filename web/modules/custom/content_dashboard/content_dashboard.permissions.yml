@@ -1,8 +1,0 @@
-administer content dashboard:
-  title: 'Administer Content Dashboard settings'
-  description: 'Manage API tokens and threshold configurations for Content Dashboard.'
-  restrict access: true
-
-access content dashboard api:
-  title: 'Access Content Dashboard API'
-  description: 'Access the external Content Dashboard REST API endpoints.'

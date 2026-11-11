@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Drupal\content_dashboard\Controller;
+namespace Drupal\cms_content_dashboard\Controller;
 
-use Drupal\content_dashboard\Service\ChangeLogRepository;
+use Drupal\cms_content_dashboard\Service\ChangeLogRepository;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -20,7 +20,7 @@ class ContentDashboardApiController extends ControllerBase {
   /**
    * The change log repository.
    *
-   * @var \Drupal\content_dashboard\Service\ChangeLogRepository
+   * @var \Drupal\cms_content_dashboard\Service\ChangeLogRepository
    */
   protected $repository;
 
@@ -49,7 +49,7 @@ class ContentDashboardApiController extends ControllerBase {
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('content_dashboard.change_log_repository'),
+      $container->get('cms_content_dashboard.change_log_repository'),
       $container->get('config.factory'),
       $container->get('entity_type.manager')
     );
@@ -59,7 +59,7 @@ class ContentDashboardApiController extends ControllerBase {
    * Validates API authentication token.
    */
   protected function authenticate(Request $request): ?JsonResponse {
-    $config = $this->configFactory->get('content_dashboard.settings');
+    $config = $this->configFactory->get('cms_content_dashboard.settings');
     if (!$config->get('enabled')) {
       return new JsonResponse([
         'status' => 'error',

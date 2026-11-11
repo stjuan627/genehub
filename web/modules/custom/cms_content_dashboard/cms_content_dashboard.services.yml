@@ -1,0 +1,12 @@
+services:
+  cms_content_dashboard.change_detector:
+    class: Drupal\cms_content_dashboard\Service\MajorChangeDetector
+    arguments:
+      - '@config.factory'
+
+  cms_content_dashboard.change_log_repository:
+    class: Drupal\cms_content_dashboard\Service\ChangeLogRepository
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+      - '@cms_content_dashboard.change_detector'

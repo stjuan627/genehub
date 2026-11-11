@@ -1,0 +1,8 @@
+administer cms content dashboard:
+  title: 'Administer CMS Content Dashboard settings'
+  description: 'Manage API tokens and threshold configurations for CMS Content Dashboard.'
+  restrict access: true
+
+access cms content dashboard api:
+  title: 'Access CMS Content Dashboard API'
+  description: 'Access the external CMS Content Dashboard REST API endpoints.'

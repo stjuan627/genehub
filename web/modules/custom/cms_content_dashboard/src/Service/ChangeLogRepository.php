@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Drupal\content_dashboard\Service;
+namespace Drupal\cms_content_dashboard\Service;
 
-use Drupal\content_dashboard\Model\ChangeAnalysisResult;
+use Drupal\cms_content_dashboard\Model\ChangeAnalysisResult;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\node\NodeInterface;
@@ -31,7 +31,7 @@ class ChangeLogRepository {
   /**
    * The change detector service.
    *
-   * @var \Drupal\content_dashboard\Service\MajorChangeDetector
+   * @var \Drupal\cms_content_dashboard\Service\MajorChangeDetector
    */
   protected $changeDetector;
 
@@ -55,7 +55,7 @@ class ChangeLogRepository {
    *   The current node.
    * @param int|null $prevVid
    *   Previous revision ID.
-   * @param \Drupal\content_dashboard\Model\ChangeAnalysisResult $result
+   * @param \Drupal\cms_content_dashboard\Model\ChangeAnalysisResult $result
    *   The analysis result.
    *
    * @return int

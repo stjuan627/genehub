@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\content_dashboard\Form;
+namespace Drupal\cms_content_dashboard\Form;
 
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -16,21 +16,21 @@ class ContentDashboardSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function getFormId(): string {
-    return 'content_dashboard_settings_form';
+    return 'cms_content_dashboard_settings_form';
   }
 
   /**
    * {@inheritdoc}
    */
   protected function getEditableConfigNames(): array {
-    return ['content_dashboard.settings'];
+    return ['cms_content_dashboard.settings'];
   }
 
   /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $config = $this->config('content_dashboard.settings');
+    $config = $this->config('cms_content_dashboard.settings');
 
     $form['enabled'] = [
       '#type' => 'checkbox',
@@ -79,7 +79,7 @@ class ContentDashboardSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $this->config('content_dashboard.settings')
+    $this->config('cms_content_dashboard.settings')
       ->set('enabled', (bool) $form_state->getValue('enabled'))
       ->set('api_key', trim((string) $form_state->getValue('api_key')))
       ->set('body_diff_ratio_threshold', (float) $form_state->getValue('body_diff_ratio_threshold'))

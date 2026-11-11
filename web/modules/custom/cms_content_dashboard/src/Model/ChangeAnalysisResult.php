@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\content_dashboard\Model;
+namespace Drupal\cms_content_dashboard\Model;
 
 /**
  * Value object representing the outcome of a node change comparison.

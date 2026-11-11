@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Drupal\content_dashboard\Commands;
+namespace Drupal\cms_content_dashboard\Commands;
 
-use Drupal\content_dashboard\Service\ChangeLogRepository;
-use Drupal\content_dashboard\Service\MajorChangeDetector;
+use Drupal\cms_content_dashboard\Service\ChangeLogRepository;
+use Drupal\cms_content_dashboard\Service\MajorChangeDetector;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drush\Attributes as CLI;
@@ -15,7 +15,7 @@ use Drush\Commands\DrushCommands;
 use Symfony\Component\Console\Helper\ProgressBar;
 
 /**
- * Drush commands for the Content Dashboard module.
+ * Drush commands for the CMS Content Dashboard module.
  */
 class ContentDashboardCommands extends DrushCommands {
 
@@ -39,12 +39,12 @@ class ContentDashboardCommands extends DrushCommands {
    * @param array<string, mixed> $options
    *   Command options.
    */
-  #[CLI\Command(name: 'content-dashboard:backfill', aliases: ['cd-backfill'])]
+  #[CLI\Command(name: 'cms-content-dashboard:backfill', aliases: ['cd-backfill'])]
   #[CLI\Bootstrap(DrupalBootLevels::FULL)]
   #[CLI\Option(name: 'bundle', description: 'Comma-separated node types to backfill (e.g. article,page).')]
   #[CLI\Option(name: 'force', description: 'Truncate existing change logs and reprocess all revisions.')]
   #[CLI\Option(name: 'batch-size', description: 'Number of nodes to process per batch.')]
-  #[CLI\Usage(name: 'drush content-dashboard:backfill', description: 'Backfill change logs incrementally for all existing nodes.')]
+  #[CLI\Usage(name: 'drush cms-content-dashboard:backfill', description: 'Backfill change logs incrementally for all existing nodes.')]
   #[CLI\Usage(name: 'drush cd-backfill --force --bundle=article', description: 'Force rebuild change logs for article nodes.')]
   public function backfill(
     array $options = [

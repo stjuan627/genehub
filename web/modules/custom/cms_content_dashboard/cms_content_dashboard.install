@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Install, update, and uninstall functions for the content_dashboard module.
+ * Install and update functions for cms_content_dashboard.
  */
 
 declare(strict_types=1);
@@ -10,7 +10,7 @@ declare(strict_types=1);
 /**
  * Implements hook_schema().
  */
-function content_dashboard_schema(): array {
+function cms_content_dashboard_schema(): array {
   $schema['content_change_log'] = [
     'description' => 'Stores change audit events and major modification metrics for nodes.',
     'fields' => [
@@ -133,7 +133,7 @@ function content_dashboard_schema(): array {
 /**
  * Add slug and url fields to the content_change_log table.
  */
-function content_dashboard_update_10001(): void {
+function cms_content_dashboard_update_10001(): void {
   $schema = \Drupal::database()->schema();
   if (!$schema->fieldExists('content_change_log', 'slug')) {
     $schema->addField('content_change_log', 'slug', [

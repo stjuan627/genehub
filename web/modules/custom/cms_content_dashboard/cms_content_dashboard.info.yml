@@ -1,4 +1,4 @@
-name: 'Content Dashboard'
+name: 'CMS Content Dashboard'
 type: module
 description: 'Provides content change tracking, major change detection, and external dashboard APIs.'
 package: 'Custom'
