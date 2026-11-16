@@ -1,0 +1,145 @@
+genemedi_i18n_workflow.overview:
+  path: '/admin/content/genemedi-i18n-workflow'
+  defaults:
+    _controller: '\Drupal\genemedi_i18n_workflow\Controller\WorkflowController::overview'
+    _title: 'GeneMedi localization workflow'
+  requirements:
+    _permission: 'administer genemedi i18n workflow'
+    _user_is_logged_in: 'TRUE'
+  options:
+    _admin_route: TRUE
+
+genemedi_i18n_workflow.enqueue:
+  path: '/admin/content/genemedi-i18n-workflow/queue'
+  defaults:
+    _form: '\Drupal\genemedi_i18n_workflow\Form\EnqueueForm'
+    _title: 'GeneMedi localization workflow'
+  requirements:
+    _permission: 'administer genemedi i18n workflow'
+    _user_is_logged_in: 'TRUE'
+  options:
+    _admin_route: TRUE
+
+genemedi_i18n_workflow.api_list:
+  path: '/api/genemedi-i18n/tasks'
+  defaults:
+    _controller: '\Drupal\genemedi_i18n_workflow\Controller\TaskApiController::listing'
+  methods: [GET]
+  requirements:
+    _permission: 'administer genemedi i18n workflow+execute genemedi i18n workflow'
+    _user_is_logged_in: 'TRUE'
+  options:
+    _auth: [basic_auth, cookie]
+
+genemedi_i18n_workflow.api_enqueue:
+  path: '/api/genemedi-i18n/tasks'
+  defaults:
+    _controller: '\Drupal\genemedi_i18n_workflow\Controller\TaskApiController::enqueue'
+  methods: [POST]
+  requirements:
+    _permission: 'administer genemedi i18n workflow'
+    _user_is_logged_in: 'TRUE'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    _auth: [basic_auth, cookie]
+
+genemedi_i18n_workflow.api_claim:
+  path: '/api/genemedi-i18n/tasks/claim'
+  defaults:
+    _controller: '\Drupal\genemedi_i18n_workflow\Controller\TaskApiController::claim'
+  methods: [POST]
+  requirements:
+    _permission: 'execute genemedi i18n workflow'
+    _user_is_logged_in: 'TRUE'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    _auth: [basic_auth, cookie]
+
+genemedi_i18n_workflow.api_claim_import:
+  path: '/api/genemedi-i18n/imports/claim'
+  defaults:
+    _controller: '\Drupal\genemedi_i18n_workflow\Controller\TaskApiController::claimImport'
+  methods: [POST]
+  requirements:
+    _permission: 'execute genemedi i18n workflow'
+    _user_is_logged_in: 'TRUE'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    _auth: [basic_auth, cookie]
+
+genemedi_i18n_workflow.api_get:
+  path: '/api/genemedi-i18n/tasks/{task}'
+  defaults:
+    _controller: '\Drupal\genemedi_i18n_workflow\Controller\TaskApiController::get'
+  methods: [GET]
+  requirements:
+    _permission: 'administer genemedi i18n workflow+execute genemedi i18n workflow'
+    _user_is_logged_in: 'TRUE'
+    task: '\d+'
+  options:
+    _auth: [basic_auth, cookie]
+
+genemedi_i18n_workflow.api_heartbeat:
+  path: '/api/genemedi-i18n/tasks/{task}/heartbeat'
+  defaults:
+    _controller: '\Drupal\genemedi_i18n_workflow\Controller\TaskApiController::heartbeat'
+  methods: [POST]
+  requirements:
+    _permission: 'execute genemedi i18n workflow'
+    _user_is_logged_in: 'TRUE'
+    task: '\d+'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    _auth: [basic_auth, cookie]
+
+genemedi_i18n_workflow.api_complete:
+  path: '/api/genemedi-i18n/tasks/{task}/complete'
+  defaults:
+    _controller: '\Drupal\genemedi_i18n_workflow\Controller\TaskApiController::complete'
+  methods: [POST]
+  requirements:
+    _permission: 'execute genemedi i18n workflow'
+    _user_is_logged_in: 'TRUE'
+    task: '\d+'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    _auth: [basic_auth, cookie]
+
+genemedi_i18n_workflow.api_fail:
+  path: '/api/genemedi-i18n/tasks/{task}/fail'
+  defaults:
+    _controller: '\Drupal\genemedi_i18n_workflow\Controller\TaskApiController::fail'
+  methods: [POST]
+  requirements:
+    _permission: 'execute genemedi i18n workflow'
+    _user_is_logged_in: 'TRUE'
+    task: '\d+'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    _auth: [basic_auth, cookie]
+
+genemedi_i18n_workflow.api_begin_import:
+  path: '/api/genemedi-i18n/tasks/{task}/begin-import'
+  defaults:
+    _controller: '\Drupal\genemedi_i18n_workflow\Controller\TaskApiController::beginImport'
+  methods: [POST]
+  requirements:
+    _permission: 'execute genemedi i18n workflow'
+    _user_is_logged_in: 'TRUE'
+    task: '\d+'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    _auth: [basic_auth, cookie]
+
+genemedi_i18n_workflow.api_acknowledge:
+  path: '/api/genemedi-i18n/tasks/{task}/acknowledge'
+  defaults:
+    _controller: '\Drupal\genemedi_i18n_workflow\Controller\TaskApiController::acknowledge'
+  methods: [POST]
+  requirements:
+    _permission: 'execute genemedi i18n workflow'
+    _user_is_logged_in: 'TRUE'
+    task: '\d+'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    _auth: [basic_auth, cookie]

@@ -1,0 +1,10 @@
+name: GeneMedi internationalization workflow
+type: module
+description: Queues field-aware localization jobs for external workers and agents.
+package: GeneHub
+core_version_requirement: ^11
+dependencies:
+  - genehub:genehub
+  - drupal:jsonapi
+  - drupal:content_translation
+  - drupal:basic_auth

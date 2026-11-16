@@ -119,7 +119,7 @@ final class GenericProduct extends EditorialContentEntityBase implements EntityO
     $fields['status'] = BaseFieldDefinition::create('boolean')
       ->setLabel(t('Published'))
       ->setDefaultValue(TRUE)
-      ->setTranslatable(FALSE)
+      ->setTranslatable(TRUE)
       ->setRevisionable(TRUE)
       ->setDisplayOptions('form', [
         'type' => 'boolean_checkbox',

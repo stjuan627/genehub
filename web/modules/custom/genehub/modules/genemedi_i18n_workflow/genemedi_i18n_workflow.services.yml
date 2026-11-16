@@ -1,0 +1,16 @@
+services:
+  genemedi_i18n_workflow.snapshot:
+    class: Drupal\genemedi_i18n_workflow\SourceSnapshot
+  genemedi_i18n_workflow.task_manager:
+    class: Drupal\genemedi_i18n_workflow\TaskManager
+    arguments: ['@database', '@entity_type.manager', '@language_manager', '@current_user', '@datetime.time', '@lock', '@genemedi_i18n_workflow.snapshot', '@jsonapi.resource_type.repository', '@request_stack']
+  genemedi_i18n_workflow.jsonapi_converter:
+    class: Drupal\genemedi_i18n_workflow\ParamConverter\WorkflowEntityConverter
+    decorates: paramconverter.jsonapi.entity_uuid
+    decoration_priority: -100
+    arguments: ['@genemedi_i18n_workflow.jsonapi_converter.inner', '@genemedi_i18n_workflow.task_manager', '@request_stack']
+  genemedi_i18n_workflow.request_cleanup:
+    class: Drupal\genemedi_i18n_workflow\EventSubscriber\RequestCleanupSubscriber
+    arguments: ['@genemedi_i18n_workflow.task_manager']
+    tags:
+      - { name: event_subscriber }

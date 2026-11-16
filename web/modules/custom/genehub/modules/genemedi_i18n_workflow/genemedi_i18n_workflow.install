@@ -1,0 +1,81 @@
+<?php
+
+/**
+ * @file
+ * Storage for durable localization tasks and execution attempts.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Field\Entity\BaseFieldOverride;
+
+/**
+ * Implements hook_install().
+ */
+function genemedi_i18n_workflow_install(): void {
+  // The workflow creates unpublished targets without changing the source.
+  // A bundle-level override can otherwise disable node's native capability.
+  $status = BaseFieldOverride::loadByName('node', 'page', 'status');
+  if ($status && !$status->isTranslatable()) {
+    $status->setTranslatable(TRUE)->save();
+  }
+}
+
+/**
+ * Implements hook_schema().
+ */
+function genemedi_i18n_workflow_schema(): array {
+  $schema['genemedi_i18n_task'] = [
+    'description' => 'Versioned localization inputs, leases, results and receipts.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'not null' => TRUE],
+      'batch_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'dedup_key' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'entity_type' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'entity_id' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'entity_uuid' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'source_lang' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE],
+      'target_lang' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE],
+      'market' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'source_hash' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'snapshot' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE],
+      'result' => ['type' => 'text', 'size' => 'big'],
+      'status' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'queued'],
+      'worker_id' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE, 'default' => ''],
+      'token_hash' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => ''],
+      'lease_expires' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'attempt_count' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'import_attempt_count' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'available_at' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'error' => ['type' => 'text', 'size' => 'big'],
+      'applied_revision' => ['type' => 'varchar', 'length' => 128],
+      'revision_before' => ['type' => 'varchar', 'length' => 128],
+      'created' => ['type' => 'int', 'not null' => TRUE],
+      'changed' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['dedup_key' => ['dedup_key']],
+    'indexes' => [
+      'claim' => ['status', 'available_at', 'lease_expires'],
+      'target' => ['entity_type', 'entity_id', 'target_lang'],
+      'batch' => ['batch_id'],
+    ],
+  ];
+  $schema['genemedi_i18n_attempt'] = [
+    'description' => 'Individual worker attempts; no plaintext lease credentials.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'not null' => TRUE],
+      'task_id' => ['type' => 'int', 'not null' => TRUE],
+      'phase' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE],
+      'worker_id' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'token_hash' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'status' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE],
+      'started' => ['type' => 'int', 'not null' => TRUE],
+      'finished' => ['type' => 'int'],
+      'error' => ['type' => 'text', 'size' => 'big'],
+    ],
+    'primary key' => ['id'],
+    'indexes' => ['task' => ['task_id'], 'token' => ['token_hash']],
+  ];
+  return $schema;
+}

@@ -1,0 +1,9 @@
+genemedi_i18n_workflow.overview:
+  title: 'Localization workflow'
+  description: 'Inspect and enqueue GeneMedi localization jobs.'
+  route_name: genemedi_i18n_workflow.overview
+  parent: system.admin_content
+genemedi_i18n_workflow.navigation:
+  title: 'Localization workflow'
+  route_name: genemedi_i18n_workflow.overview
+  menu_name: content

@@ -105,3 +105,19 @@ function genehub_solidex_update_11003(): void {
       ->execute();
   }
 }
+
+/**
+ * Makes publication status independent for each product translation.
+ */
+function genehub_solidex_update_11004(): void {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $definition = $update_manager->getFieldStorageDefinition('status', 'product_solidex');
+
+  if ($definition !== NULL && !$definition->isTranslatable()) {
+    // Both current and revision status values already have per-language rows.
+    // Updating the definition preserves those values; do not resave products or
+    // copy the current status over historical revisions or other translations.
+    $definition->setTranslatable(TRUE);
+    $update_manager->updateFieldStorageDefinition($definition);
+  }
+}

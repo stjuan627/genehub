@@ -1,0 +1,50 @@
+<?php
+
+/**
+ * @file
+ * CMS entry points and scoped revision guarantees for localization PATCHes.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_entity_operation().
+ */
+function genemedi_i18n_workflow_entity_operation(EntityInterface $entity): array {
+  if (in_array($entity->getEntityTypeId(), ['node', 'product_generic', 'product_solidex'], TRUE)
+    && ($entity->getEntityTypeId() !== 'node' || $entity->bundle() === 'page')
+    && \Drupal::currentUser()->hasPermission('administer genemedi i18n workflow')
+    && $entity->access('update')) {
+    return [
+      'genemedi_i18n_queue' => [
+        'title' => t('Queue localization task'),
+        'weight' => 50,
+        'url' => Url::fromRoute('genemedi_i18n_workflow.enqueue', [], [
+          'query' => [
+            'entity_type' => $entity->getEntityTypeId(),
+            'entity_id' => $entity->id(),
+            'source_lang' => $entity->language()->getId(),
+          ],
+        ]),
+      ],
+    ];
+  }
+  return [];
+}
+
+/**
+ * Implements hook_entity_presave().
+ */
+function genemedi_i18n_workflow_entity_presave(EntityInterface $entity): void {
+  \Drupal::service('genemedi_i18n_workflow.task_manager')->beforePatch($entity);
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function genemedi_i18n_workflow_entity_update(EntityInterface $entity): void {
+  \Drupal::service('genemedi_i18n_workflow.task_manager')->afterPatch($entity);
+}

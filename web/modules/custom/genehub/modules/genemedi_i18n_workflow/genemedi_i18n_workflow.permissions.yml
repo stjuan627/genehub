@@ -1,0 +1,8 @@
+administer genemedi i18n workflow:
+  title: 'Administer GeneMedi localization workflow'
+  description: 'Enqueue localization jobs, inspect source snapshots and manage automatic publication.'
+  restrict access: true
+execute genemedi i18n workflow:
+  title: 'Execute GeneMedi localization jobs'
+  description: 'Claim jobs, submit localized results and apply them to published translations.'
+  restrict access: true

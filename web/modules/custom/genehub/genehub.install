@@ -19,7 +19,7 @@ function genehub_install(): void {
   $config = \Drupal::configFactory()->getEditable('genehub.settings');
 
   if ((string) $config->get('public_base_url') === '') {
-    $site_url = (string) (\Drupal::service('request')->getSchemeAndHttpHost() ?? '');
+    $site_url = (string) (\Drupal::request()?->getSchemeAndHttpHost() ?? '');
     if ($site_url !== '') {
       $config->set('public_base_url', $site_url);
     }
