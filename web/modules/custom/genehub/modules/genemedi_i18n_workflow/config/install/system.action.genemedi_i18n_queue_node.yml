@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - genemedi_i18n_workflow
+    - node
+id: genemedi_i18n_queue_node
+label: 'Queue localization tasks'
+type: node
+plugin: genemedi_i18n_queue:node
+configuration: { }

@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - genemedi_i18n_workflow
+    - genehub_generic
+id: genemedi_i18n_queue_product_generic
+label: 'Queue localization tasks'
+type: product_generic
+plugin: genemedi_i18n_queue:product_generic
+configuration: { }

@@ -79,3 +79,21 @@ function genemedi_i18n_workflow_schema(): array {
   ];
   return $schema;
 }
+
+/**
+ * Adds localization actions to existing sites without changing their Views.
+ */
+function genemedi_i18n_workflow_update_11001(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('action');
+  foreach (['node', 'product_generic', 'product_solidex'] as $type) {
+    if (\Drupal::entityTypeManager()->hasDefinition($type) && !$storage->load('genemedi_i18n_queue_' . $type)) {
+      $storage->create([
+        'id' => 'genemedi_i18n_queue_' . $type,
+        'label' => 'Queue localization tasks',
+        'type' => $type,
+        'plugin' => 'genemedi_i18n_queue:' . $type,
+        'configuration' => [],
+      ])->save();
+    }
+  }
+}

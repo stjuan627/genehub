@@ -34,6 +34,21 @@ JSON:API 必须在站点现有配置中允许写操作，worker 账户还需拥�
 - 入队表单：`/admin/content/genemedi-i18n-workflow/queue`。
 - 支持的实体列表操作中提供 `Queue localization task`。
 
+### 批量入队
+
+Generic 与 SOLIDEX 产品列表可勾选当前页的多个产品，选择 `Queue localization tasks` 并点击 `Apply to selected items`，进入统一配置表单：
+
+1. 核对所选内容，指定源语言。
+2. 多选目标语言，确认每种语言的市场（可修改预填值）。
+3. 点击 `Queue localization tasks`，按“实体 × 目标语言”入队，并显示批处理进度。
+
+进入配置表单及取消操作不会创建任务或翻译草稿。确认后才预建缺失的目标草稿；已有译文保持原状。重复提交默认复用匹配任务，批处理结束报告新建、复用数量及逐项失败原因；成功项不因其他实体失败而回滚。可重试失败项，原有防重逻辑避免重复任务。需要重新生成时显式勾选新代次选项。
+
+同时提供 Drupal 核心 Action，Basic page 可从 `/admin/content` 的 Views 批量操作中使用相同流程。自定义 Views 若限制了可选操作，需要将 `Queue localization tasks` 加入允许列表。非 Basic page 内容不允许执行此 Action。无需安装 Views Bulk Operations 扩展。
+
+已有站点执行 `genemedi_i18n_workflow_update_11001()` 对应数据库更新以注册 Action 配置，并重建缓存；新安装自动安装适用的配置。不覆盖现有 Views 配置。批量入口要求 `administer genemedi i18n workflow` 及各实体更新权限。当前产品列表按当前页勾选，不包含跨页“全选所有结果”。
+
+
 表单选择实体类型、ID、源语言，并逐行指定目标语言及市场：
 
 ```text

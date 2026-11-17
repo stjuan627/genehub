@@ -169,3 +169,14 @@ genemedi_i18n_workflow.api_acknowledge:
     _csrf_request_header_token: 'TRUE'
   options:
     _auth: [basic_auth, cookie]
+
+genemedi_i18n_workflow.bulk_enqueue:
+  path: '/admin/content/genemedi-i18n-workflow/queue-selected'
+  defaults:
+    _form: '\Drupal\genemedi_i18n_workflow\Form\BulkEnqueueForm'
+    _title: 'Queue selected content for localization'
+  requirements:
+    _permission: 'administer genemedi i18n workflow'
+    _user_is_logged_in: 'TRUE'
+  options:
+    _admin_route: TRUE

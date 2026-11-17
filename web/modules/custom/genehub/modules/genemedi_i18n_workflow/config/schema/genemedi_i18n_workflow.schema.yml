@@ -1,0 +1,3 @@
+action.configuration.genemedi_i18n_queue:*:
+  type: action_configuration_default
+  label: 'Queue localization action configuration'

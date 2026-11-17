@@ -9,6 +9,7 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\genemedi_i18n_workflow\TaskManager;
+use Drupal\genemedi_i18n_workflow\Form\BulkEnqueueForm;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\language\Entity\ContentLanguageSettings;
@@ -108,6 +109,24 @@ final class TaskManagerTest extends KernelTestBase {
     $this->source->save();
     $this->container->get('router.builder')->rebuild();
     $this->tasks = $this->container->get('genemedi_i18n_workflow.task_manager');
+  }
+
+  /**
+   * Tests per-item batch failure preserves successes and counts reused tasks.
+   */
+  public function testBulkBatchPartialFailureAndReuse(): void {
+    $targets = [['langcode' => 'fr', 'market' => 'FR']];
+    $context = ['results' => []];
+    BulkEnqueueForm::enqueueItem('node', (string) $this->source->id(), 'en', $targets, $context);
+    BulkEnqueueForm::enqueueItem('node', '999999', 'en', $targets, $context);
+    BulkEnqueueForm::enqueueItem('node', (string) $this->source->id(), 'en', $targets, $context);
+    $this->assertSame(1, $context['results']['created']);
+    $this->assertSame(1, $context['results']['reused']);
+    $this->assertCount(1, $context['results']['errors']);
+    $this->assertStringContainsString('node/999999', $context['results']['errors'][0]);
+    $this->assertCount(1, $this->tasks->listTasks());
+    $this->assertTrue($this->reload()->isPublished());
+    $this->assertFalse($this->reload()->getTranslation('fr')->isPublished());
   }
 
   /**
