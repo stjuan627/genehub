@@ -7,6 +7,9 @@
 
 declare(strict_types=1);
 
+use Drupal\Component\Serialization\Yaml;
+use Drupal\Core\Utility\UpdateException;
+
 /**
  * Migrates the Storage field from a short string to a long plain-text field.
  *
@@ -120,4 +123,49 @@ function genehub_solidex_update_11004(): void {
     $definition->setTranslatable(TRUE);
     $update_manager->updateFieldStorageDefinition($definition);
   }
+}
+
+/**
+ * Installs the product administration View without replacing customized Views.
+ */
+function genehub_solidex_update_11005(): void {
+  if (!\Drupal::moduleHandler()->moduleExists('views')) {
+    throw new UpdateException('Enable Views before updating the product administration lists.');
+  }
+  $name = 'views.view.genehub_solidex_products';
+  if (!\Drupal::configFactory()->get($name)->isNew()) {
+    return;
+  }
+  $path = \Drupal::service('extension.list.module')->getPath('genehub_solidex');
+  $data = Yaml::decode(file_get_contents($path . '/config/optional/' . $name . '.yml'));
+  \Drupal::entityTypeManager()->getStorage('view')->create($data)->save();
+}
+
+/**
+ * Adds slug search, sortable columns and native sticky bulk action markup.
+ */
+function genehub_solidex_update_11006(): void {
+  $name = 'views.view.genehub_solidex_products';
+  $config = \Drupal::configFactory()->getEditable($name);
+  if ($config->isNew()) {
+    return;
+  }
+  $path = \Drupal::service('extension.list.module')->getPath('genehub_solidex');
+  $defaults = Yaml::decode(file_get_contents($path . '/config/optional/' . $name . '.yml'));
+  $options = $defaults['display']['default']['display_options'];
+  $fields = $config->get('display.default.display_options.fields');
+  $updated = [];
+  foreach ($fields as $key => $field) {
+    if ($key === 'bulk_form') {
+      $key = 'product_bulk_form';
+      $field['id'] = $key;
+    }
+    $updated[$key] = $field;
+    if ($key === 'product_name') {
+      $updated['products_link'] = $options['fields']['products_link'];
+    }
+  }
+  $config->set('display.default.display_options.fields', $updated)
+    ->set('display.default.display_options.filters.products_link', $options['filters']['products_link'])
+    ->set('display.default.display_options.style.options', $options['style']['options'])->save();
 }

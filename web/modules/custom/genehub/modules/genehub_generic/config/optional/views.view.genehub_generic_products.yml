@@ -1,0 +1,213 @@
+langcode: en
+status: true
+dependencies:
+  module:
+  - genehub_generic
+  - views
+id: genehub_generic_products
+label: Generic products
+module: views
+description: Product administration listing.
+tag: GeneHub
+base_table: product_generic_field_data
+base_field: id
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: Generic products
+      access:
+        type: perm
+        options:
+          perm: administer generic products
+      cache:
+        type: none
+      query:
+        type: views_query
+      exposed_form:
+        type: basic
+      pager:
+        type: full
+        options:
+          items_per_page: 50
+      style:
+        type: table
+        options:
+          columns:
+            product_bulk_form: product_bulk_form
+            product_name: product_name
+            slug: slug
+            cat_no: cat_no
+            product_kind: product_kind
+            status: status
+            changed: changed
+            operations: operations
+          default: changed
+          info:
+            product_bulk_form:
+              sortable: false
+              default_sort_order: asc
+            product_name:
+              sortable: true
+              default_sort_order: asc
+            slug:
+              sortable: true
+              default_sort_order: asc
+            cat_no:
+              sortable: true
+              default_sort_order: asc
+            product_kind:
+              sortable: true
+              default_sort_order: asc
+            status:
+              sortable: true
+              default_sort_order: asc
+            changed:
+              sortable: true
+              default_sort_order: desc
+            operations:
+              sortable: false
+              default_sort_order: asc
+      row:
+        type: fields
+      fields:
+        product_bulk_form:
+          id: product_bulk_form
+          table: product_generic
+          field: bulk_form
+          plugin_id: bulk_form
+          entity_type: product_generic
+          label: ''
+        product_name:
+          id: product_name
+          table: product_generic_field_data
+          field: product_name
+          entity_type: product_generic
+          entity_field: product_name
+          plugin_id: field
+          label: Product name
+          type: string
+          settings:
+            link_to_entity: true
+        slug:
+          id: slug
+          table: product_generic_field_data
+          field: slug
+          entity_type: product_generic
+          entity_field: slug
+          plugin_id: field
+          label: Slug
+          type: string
+        cat_no:
+          id: cat_no
+          table: product_generic_field_data
+          field: cat_no
+          entity_type: product_generic
+          entity_field: cat_no
+          plugin_id: field
+          label: Catalog number
+        product_kind:
+          id: product_kind
+          table: product_generic_field_data
+          field: product_kind
+          entity_type: product_generic
+          entity_field: product_kind
+          plugin_id: field
+          label: Product kind
+        status:
+          id: status
+          table: product_generic_field_data
+          field: status
+          entity_type: product_generic
+          entity_field: status
+          plugin_id: field
+          label: Published
+        changed:
+          id: changed
+          table: product_generic_field_data
+          field: changed
+          entity_type: product_generic
+          entity_field: changed
+          plugin_id: field
+          label: Updated
+          type: timestamp
+          settings:
+            date_format: short
+        operations:
+          id: operations
+          table: product_generic
+          field: operations
+          plugin_id: entity_operations
+          entity_type: product_generic
+          label: Operations
+      filters:
+        product_name:
+          id: product_name
+          table: product_generic_field_data
+          field: product_name
+          entity_type: product_generic
+          entity_field: product_name
+          plugin_id: string
+          operator: contains
+          value: ''
+          exposed: true
+          expose:
+            identifier: product_name
+            label: Product name
+            required: false
+        cat_no:
+          id: cat_no
+          table: product_generic_field_data
+          field: cat_no
+          entity_type: product_generic
+          entity_field: cat_no
+          plugin_id: string
+          operator: contains
+          value: ''
+          exposed: true
+          expose:
+            identifier: cat_no
+            label: Catalog number
+            required: false
+        status:
+          id: status
+          table: product_generic_field_data
+          field: status
+          entity_type: product_generic
+          plugin_id: boolean
+          value: All
+          exposed: true
+          expose:
+            identifier: status
+            label: Published
+            required: false
+        default_langcode:
+          id: default_langcode
+          table: product_generic_field_data
+          field: default_langcode
+          plugin_id: boolean
+          value: '1'
+        slug:
+          id: slug
+          table: product_generic_field_data
+          field: slug
+          entity_type: product_generic
+          entity_field: slug
+          plugin_id: string
+          operator: contains
+          value: ''
+          exposed: true
+          expose:
+            identifier: slug
+            label: Slug
+            required: false
+      sorts:
+        changed:
+          id: changed
+          table: product_generic_field_data
+          field: changed
+          plugin_id: date
+          order: DESC

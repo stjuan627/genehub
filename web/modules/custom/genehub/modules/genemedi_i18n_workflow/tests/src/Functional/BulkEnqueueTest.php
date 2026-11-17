@@ -60,12 +60,7 @@ final class BulkEnqueueTest extends BrowserTestBase {
     $second->save();
     $this->drupalGet('/admin/content/products/generic');
     $this->assertSession()->statusCodeEquals(200);
-    $this->submitForm([], 'Apply to selected items');
-    $this->assertSession()->pageTextContains('Select at least one product');
-    $this->submitForm([
-      'entities[' . $first->id() . ']' => TRUE,
-      'entities[' . $second->id() . ']' => TRUE,
-    ], 'Apply to selected items');
+    $this->selectProducts(['Bulk product one', 'Bulk product two']);
     $this->assertSession()->addressEquals('/admin/content/genemedi-i18n-workflow/queue-selected');
     $this->assertSession()->pageTextContains('Bulk product one');
     $this->assertSession()->pageTextContains('Bulk product two');
@@ -95,10 +90,7 @@ final class BulkEnqueueTest extends BrowserTestBase {
     }
     // Repeating the selection reuses the four matching tasks.
     $this->drupalGet('/admin/content/products/generic');
-    $this->submitForm([
-      'entities[' . $first->id() . ']' => TRUE,
-      'entities[' . $second->id() . ']' => TRUE,
-    ], 'Apply to selected items');
+    $this->selectProducts(['Bulk product one', 'Bulk product two']);
     $this->submitForm(['target_languages[fr]' => TRUE, 'target_languages[ja]' => TRUE], 'Queue localization tasks');
     $this->assertSame(4, $this->taskCount());
 
@@ -126,7 +118,9 @@ final class BulkEnqueueTest extends BrowserTestBase {
     $this->drupalLogout();
     $this->drupalLogin($this->drupalCreateUser(['administer generic products']));
     $this->drupalGet('/admin/content/products/generic');
-    $this->assertSession()->buttonNotExists('Apply to selected items');
+    $this->selectProducts(['Bulk product one']);
+    $this->assertSession()->pageTextContains('No access to execute');
+    $this->assertSame(5, $this->taskCount());
     $this->drupalGet('/admin/content/genemedi-i18n-workflow/queue-selected');
     $this->assertSession()->statusCodeEquals(403);
   }
@@ -140,7 +134,7 @@ final class BulkEnqueueTest extends BrowserTestBase {
     $second = GenericProduct::create(['langcode' => 'en', 'product_name' => 'Second tab product']);
     $second->save();
     $this->drupalGet('/admin/content/products/generic');
-    $this->submitForm(['entities[' . $first->id() . ']' => TRUE], 'Apply to selected items');
+    $this->selectProducts(['First tab product']);
     $this->assertSession()->pageTextContains('First tab product');
     // Simulate another tab submitting a different selection for the same user,
     // without rebuilding or validating the already open confirmation form.
@@ -207,6 +201,81 @@ final class BulkEnqueueTest extends BrowserTestBase {
     ])
       ->condition('entity_type', 'product_generic')->condition('entity_id', (string) $product->id())->execute()->fetchAllKeyed();
     $this->assertEquals(['fr' => 'FR', 'ja' => 'JP'], $targets);
+  }
+
+  /**
+   * Tests product Views expose filters and sort by the latest update.
+   */
+  public function testProductFiltersAndUpdatedSort(): void {
+    $this->container->get('theme_installer')->install(['claro']);
+    $this->config('system.theme')->set('admin', 'claro')->save();
+    foreach (['generic', 'solidex'] as $kind) {
+      $storage = $this->container->get('entity_type.manager')->getStorage('product_' . $kind);
+      $older = $storage->create([
+        'langcode' => 'en',
+        'product_name' => 'Older filter product',
+        'cat_no' => 'OLD',
+        'changed' => 100,
+      ]);
+      $older->set('products_link', 'https://example.test/i/aaa-old-product');
+      if ($kind === 'generic') {
+        $older->set('slug', 'aaa-old-product');
+      }
+      $older->save();
+      $newer = $storage->create([
+        'langcode' => 'en',
+        'product_name' => 'Newer filter product',
+        'cat_no' => 'NEW',
+        'changed' => 200,
+      ]);
+      $newer->set('products_link', 'https://example.test/i/zzz-new-product');
+      if ($kind === 'generic') {
+        $newer->set('slug', 'zzz-new-product');
+      }
+      $newer->save();
+      $path = '/admin/content/products/' . $kind;
+      $this->drupalGet($path);
+      $this->assertSession()->statusCodeEquals(200);
+      $rows = $this->getSession()->getPage()->findAll('css', 'table tbody tr');
+      $this->assertCount(2, $rows);
+      $this->assertStringContainsString('Newer filter product', $rows[0]->getText());
+      $this->assertSession()->pageTextContains('Updated');
+      $this->assertSession()->elementExists('css', '[data-drupal-views-bulk-actions]');
+      $this->assertSession()->elementExists('css', '[data-drupal-views-bulk-actions-status]');
+      $this->assertSession()->pageTextContains('aaa-old-product');
+      $this->assertSession()->pageTextContains('zzz-new-product');
+      $this->clickLink('Slug');
+      $rows = $this->getSession()->getPage()->findAll('css', 'table tbody tr');
+      $this->assertStringContainsString('Older filter product', $rows[0]->getText());
+      $this->clickLink('Slug');
+      $rows = $this->getSession()->getPage()->findAll('css', 'table tbody tr');
+      $this->assertStringContainsString('Newer filter product', $rows[0]->getText());
+      $this->drupalGet($path, ['query' => ['slug' => 'aaa-old']]);
+      $this->assertSession()->pageTextContains('Older filter product');
+      $this->assertSession()->pageTextNotContains('Newer filter product');
+
+      $this->drupalGet($path, ['query' => ['cat_no' => 'OLD']]);
+      $this->assertSession()->pageTextContains('Older filter product');
+      $this->assertSession()->pageTextNotContains('Newer filter product');
+      $this->drupalGet($path, ['query' => ['product_name' => 'Newer']]);
+      $this->assertSession()->pageTextContains('Newer filter product');
+      $this->assertSession()->pageTextNotContains('Older filter product');
+    }
+  }
+
+  /**
+   * Selects products using their real Views bulk form checkboxes.
+   */
+  private function selectProducts(array $labels): void {
+    foreach ($this->getSession()->getPage()->findAll('css', 'table tbody tr') as $row) {
+      foreach ($labels as $label) {
+        if (str_contains($row->getText(), $label)) {
+          $row->find('css', 'input[type="checkbox"]')->check();
+        }
+      }
+    }
+    $this->getSession()->getPage()->selectFieldOption('action', 'genemedi_i18n_queue_product_generic');
+    $this->getSession()->getPage()->pressButton('Apply to selected items');
   }
 
   /**

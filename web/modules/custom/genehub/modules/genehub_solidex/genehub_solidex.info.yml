@@ -10,3 +10,4 @@ dependencies:
   - drupal:text
   - drupal:user
   - genehub:genehub
+  - drupal:views

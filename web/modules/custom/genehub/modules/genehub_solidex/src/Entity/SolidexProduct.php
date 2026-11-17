@@ -42,6 +42,7 @@ use Drupal\user\EntityOwnerTrait;
     'published' => 'status',
   ],
   handlers: [
+    'views_data' => \Drupal\genehub\ProductViewsData::class,
     'access' => SolidexProductAccessControlHandler::class,
     'list_builder' => SolidexProductListBuilder::class,
     'view_builder' => EntityViewBuilder::class,

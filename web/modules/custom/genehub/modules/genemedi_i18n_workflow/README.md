@@ -36,7 +36,11 @@ JSON:API 必须在站点现有配置中允许写操作，worker 账户还需拥�
 
 ### 批量入队
 
-Generic 与 SOLIDEX 产品列表可勾选当前页的多个产品，选择 `Queue localization tasks` 并点击 `Apply to selected items`，进入统一配置表单：
+产品列表保留 `/admin/content/products/generic`、`/admin/content/products/solidex` 原地址。对应 Views 为 `genehub_generic_products` 和 `genehub_solidex_products`；可筛选产品名称、Slug、目录号及发布状态，显示更新时间并默认倒序，数据列支持点击表头排序，每页 50 条，每个产品仅显示默认语言一行。SOLIDEX 的 Slug 从现有 `products_link` 提取显示，检索匹配该存储字段。勾选产品后沿用 Gin／Claro 底部悬浮批量操作栏。已有站点执行两产品模块 `11005`、`11006` 更新并重建缓存；更新只创建缺失的 View，不覆盖已有定制配置。
+
+Generic 与 SOLIDEX 产品列表由 Views 渲染，保留现有地址及菜单。支持按产品名称、目录号与发布状态筛选，显示更新时间并默认按更新时间倒序，每页 50 项。两类产品分别执行 `genehub_generic_update_11005()`、`genehub_solidex_update_11005()` 对应更新安装缺失的 View，不覆盖已有同名 View。可在 Views UI 调整列表字段及筛选条件。
+
+列表可勾选当前页的多个产品，选择 `Queue localization tasks` 并点击 `Apply to selected items`，进入统一配置表单：
 
 1. 核对所选内容，指定源语言。
 2. 多选目标语言，确认每种语言的市场（可修改预填值）。

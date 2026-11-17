@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\genehub_generic;
 
-use Drupal\genemedi_i18n_workflow\Form\ProductBulkForm;
+use Drupal\views\Views;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityListBuilder;
 
@@ -17,9 +17,9 @@ final class GenericProductListBuilder extends EntityListBuilder {
    * {@inheritdoc}
    */
   public function render() {
-    if ($this->moduleHandler()->moduleExists('genemedi_i18n_workflow')
-      && \Drupal::currentUser()->hasPermission('administer genemedi i18n workflow')) {
-      return \Drupal::formBuilder()->getForm(ProductBulkForm::class, $this->entityTypeId);
+    $view = Views::getView('genehub_generic_products');
+    if ($view && $view->storage->status()) {
+      return $view->buildRenderable('default');
     }
     return parent::render();
   }
