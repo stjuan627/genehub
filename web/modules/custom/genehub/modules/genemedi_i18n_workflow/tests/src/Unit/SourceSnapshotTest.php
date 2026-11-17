@@ -118,18 +118,25 @@ final class SourceSnapshotTest extends UnitTestCase {
   /**
    * Tests source hashes ignore metadata while detecting source changes.
    */
-  public function testCaptureHashAndNodeTitleBodyScope(): void {
+  public function testCaptureHashAndNodeLocalizationScope(): void {
     $capture = new SourceSnapshot();
     $first = $capture->capture($this->sourceEntity('Source', '1', 5), 'en');
     $next_revision = $capture->capture($this->sourceEntity('Source', '2', 6), 'en');
     $changed = $capture->capture($this->sourceEntity('Changed', '2', 6), 'en');
+    $changed_description = $capture->capture($this->sourceEntity('Source', '1', 5, 'Changed description'), 'en');
     $this->assertSame($first['source_hash'], $next_revision['source_hash']);
     $this->assertNotSame($first['source_hash'], $changed['source_hash']);
-    $this->assertSame(['body', 'title'], array_keys($first['fields']));
+    $this->assertNotSame($first['source_hash'], $changed_description['source_hash']);
+    $this->assertSame(['body', 'title', 'field_meta_description'], array_keys($first['fields']));
     $this->assertSame([['value' => 'A page title']], $first['fields']['title']);
     $this->assertSame(['value'], $first['mapping']['title']['translatable_properties']);
     $this->assertSame([], $first['mapping']['title']['html_properties']);
     $this->assertArrayNotHasKey('title', $first['context']);
+    $this->assertSame([['value' => 'Source description']], $first['fields']['field_meta_description']);
+    $this->assertSame(['value'], $first['mapping']['field_meta_description']['translatable_properties']);
+    $this->assertSame([], $first['mapping']['field_meta_description']['html_properties']);
+    $this->assertArrayNotHasKey('field_meta_description', $first['context']);
+    $this->assertArrayHasKey('field_other_text', $first['context']);
     $this->assertArrayNotHasKey('changed', $first['context']);
     $this->assertSame(5, $first['source_revision']);
   }
@@ -137,7 +144,7 @@ final class SourceSnapshotTest extends UnitTestCase {
   /**
    * Builds a mock node without a Drupal service container.
    */
-  private function sourceEntity(string $body, string $changed, int $revision): ContentEntityInterface {
+  private function sourceEntity(string $body, string $changed, int $revision, string $description = 'Source description'): ContentEntityInterface {
     $entity_type = $this->createMock(EntityTypeInterface::class);
     $entity_type->method('isRevisionable')->willReturn(TRUE);
     $keys = ['id' => 'nid', 'label' => 'title', 'uuid' => 'uuid', 'revision' => 'vid'];
@@ -150,11 +157,22 @@ final class SourceSnapshotTest extends UnitTestCase {
     $title_definition = $this->createMock(FieldDefinitionInterface::class);
     $title_definition->method('getType')->willReturn('string');
     $title_definition->method('isTranslatable')->willReturn(TRUE);
+    $description_definition = $this->createMock(FieldDefinitionInterface::class);
+    $description_definition->method('getType')->willReturn('string_long');
+    $description_definition->method('isTranslatable')->willReturn(TRUE);
     $changed_definition = clone $body_definition;
-    $definitions = ['body' => $body_definition, 'title' => $title_definition, 'changed' => $changed_definition];
+    $definitions = [
+      'body' => $body_definition,
+      'title' => $title_definition,
+      'field_meta_description' => $description_definition,
+      'field_other_text' => $description_definition,
+      'changed' => $changed_definition,
+    ];
     $values = [
       'body' => [['value' => $body, 'format' => 'full_html', 'summary' => '']],
       'title' => [['value' => 'A page title']],
+      'field_meta_description' => [['value' => $description]],
+      'field_other_text' => [['value' => 'Unrelated text']],
       'changed' => [['value' => $changed]],
     ];
     $entity = $this->createMock(ContentEntityInterface::class);

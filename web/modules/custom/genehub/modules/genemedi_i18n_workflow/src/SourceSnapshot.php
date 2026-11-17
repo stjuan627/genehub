@@ -55,10 +55,10 @@ final class SourceSnapshot {
       $value = $source->get($name)->getValue();
       $eligible = $definition->isTranslatable() && !$definition->isReadOnly() && $properties;
       if ($type === 'node') {
-        $eligible = $eligible && in_array($name, ['title', 'body'], TRUE);
+        $eligible = $eligible && in_array($name, ['title', 'body', 'field_meta_description'], TRUE);
       }
       if (!$eligible) {
-        // Other node fields remain context outside the title/body output.
+        // Other node fields remain context outside the localization scope.
         $context[$name] = $value;
         continue;
       }

@@ -21,10 +21,12 @@ JSON:API 必须在站点现有配置中允许写操作，worker 账户还需拥�
 
 当前支持：
 
-- `node` 的 `page` bundle：本地化纯文本标题 `title` 和正文 `body`，保留完整正文 HTML；其他字段保持原有范围。
+- `node` 的 `page` bundle：本地化纯文本标题 `title`、纯文本 meta description `field_meta_description` 和正文 `body`，保留完整正文 HTML；其他字段保持原有范围。meta description 仅在字段存在且可翻译、可写时纳入。
 - `product_generic`、`product_solidex`：按真实可翻译文本字段及多值顺序处理。
 - 目标翻译不存在时，在入队事务中复制源字段建立未发布翻译；已有目标翻译及其发布状态保持不变，直至结果实际入库。
 - 通过核对后自动覆盖指定目标字段、发布，并为每次实际成功执行的内容 PATCH 创建新 revision。其他语言及未指定字段保持不变。
+
+任务快照是固定的。升级前只含 `title` / `body` 的 page 任务不会自动增加 meta description；字段映射变化会触发源版本保护。需要通过入队接口创建包含新映射的任务（已有同语言任务时可用 `regenerate: true`），不要修改旧快照或向旧结果追加字段。
 
 ## 后台入口与入队
 

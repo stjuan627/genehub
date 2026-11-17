@@ -6,6 +6,7 @@ namespace Drupal\Tests\genemedi_i18n_workflow\Functional;
 
 use Drupal\Core\Url;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\language\Entity\ContentLanguageSettings;
@@ -56,6 +57,18 @@ final class WorkflowJsonApiTest extends BrowserTestBase {
     // a new revision even when the ordinary JSON:API default would not.
     $this->drupalCreateContentType(['type' => 'page', 'name' => 'Basic page', 'new_revision' => FALSE]);
     FieldConfig::loadByName('node', 'page', 'body')->setTranslatable(TRUE)->save();
+    FieldStorageConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_meta_description',
+      'type' => 'string_long',
+    ])->save();
+    FieldConfig::create([
+      'entity_type' => 'node',
+      'bundle' => 'page',
+      'field_name' => 'field_meta_description',
+      'label' => 'Meta description',
+      'translatable' => TRUE,
+    ])->save();
     ContentLanguageSettings::loadByEntityTypeBundle('node', 'page')
       ->setDefaultLangcode('en')->setLanguageAlterable(TRUE)
       ->setThirdPartySetting('content_translation', 'enabled', TRUE)->save();
@@ -85,6 +98,7 @@ final class WorkflowJsonApiTest extends BrowserTestBase {
       'type' => 'page',
       'langcode' => 'en',
       'title' => 'English source',
+      'field_meta_description' => 'Product purity >95%.',
       'status' => TRUE,
       'uid' => $this->worker->id(),
       'body' => ['value' => $source_html, 'format' => 'full_html', 'summary' => ''],
@@ -108,7 +122,9 @@ final class WorkflowJsonApiTest extends BrowserTestBase {
     $this->assertSame($task_id, $task['id']);
     $fields = $task['snapshot']['fields'];
     $this->assertSame([['value' => 'English source']], $fields['title']);
+    $this->assertSame([['value' => 'Product purity >95%.']], $fields['field_meta_description']);
     $fields['title'][0]['value'] = 'Source française';
+    $fields['field_meta_description'][0]['value'] = 'Pureté du produit >95 %.';
     $fields['body'][0]['value'] = $target_html;
     // A reported save failure can resume this same task and existing draft.
     $this->api('/api/genemedi-i18n/tasks/' . $task_id . '/fail', [
@@ -145,12 +161,14 @@ final class WorkflowJsonApiTest extends BrowserTestBase {
     $this->assertSame('patch', $import['next_action']);
     $before = $this->reloadNode($source->id());
     $revision_before = (string) $before->getRevisionId();
+    $this->assertSame('Pureté du produit >95 %.', $import['patch']['payload']['data']['attributes']['field_meta_description']);
     $document = $this->api($import['patch']['url'], $import['patch']['payload'], 200, 'PATCH', $import['patch']['headers']);
     $this->assertSame($source->uuid(), $document['data']['id']);
     $this->assertSame('fr', $document['data']['attributes']['langcode']);
     $this->assertTrue($document['data']['attributes']['status']);
     $this->assertSame($target_html, $document['data']['attributes']['body']['value']);
     $this->assertSame('Source française', $document['data']['attributes']['title']);
+    $this->assertSame('Pureté du produit >95 %.', $document['data']['attributes']['field_meta_description']);
     // Building the actual JSON:API response links re-enters parameter
     // conversion; this catches failures after a successful entity save.
     $this->assertArrayHasKey('self', $document['links']);
@@ -160,9 +178,11 @@ final class WorkflowJsonApiTest extends BrowserTestBase {
     $this->assertNotSame($revision_before, $revision_after);
     $this->assertSame($source_html, $saved->getTranslation('en')->get('body')->value);
     $this->assertSame('English source', $saved->getTranslation('en')->label());
+    $this->assertSame('Product purity >95%.', $saved->getTranslation('en')->get('field_meta_description')->value);
     $this->assertTrue($saved->getTranslation('en')->isPublished());
     $this->assertSame($target_html, $saved->getTranslation('fr')->get('body')->value);
     $this->assertSame('Source française', $saved->getTranslation('fr')->label());
+    $this->assertSame('Pureté du produit >95 %.', $saved->getTranslation('fr')->get('field_meta_description')->value);
     $this->assertTrue($saved->getTranslation('fr')->isPublished());
 
     $this->api($import['patch']['url'], $import['patch']['payload'], 409, 'PATCH', $import['patch']['headers']);
