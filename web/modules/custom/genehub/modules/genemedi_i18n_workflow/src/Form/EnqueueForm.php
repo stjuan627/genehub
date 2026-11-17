@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\genemedi_i18n_workflow\Form;
 
 use Drupal\Core\Form\FormBase;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\genemedi_i18n_workflow\TaskManager;
@@ -16,6 +17,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 final class EnqueueForm extends FormBase {
 
+  use TargetLanguageFieldsTrait;
+
   /**
    * Constructs the queue form.
    */
@@ -23,6 +26,7 @@ final class EnqueueForm extends FormBase {
     protected readonly TaskManager $taskManager,
     protected readonly LanguageManagerInterface $languageManager,
     protected readonly RequestStack $workflowRequests,
+    protected readonly EntityTypeManagerInterface $entities,
   ) {}
 
   /**
@@ -33,6 +37,7 @@ final class EnqueueForm extends FormBase {
       $container->get('genemedi_i18n_workflow.task_manager'),
       $container->get('language_manager'),
       $container->get('request_stack'),
+      $container->get('entity_type.manager'),
     );
   }
 
@@ -51,24 +56,55 @@ final class EnqueueForm extends FormBase {
     $form['description'] = [
       '#markup' => $this->t('Queue one job per target language and market. Missing target translations are initialized as unpublished drafts. Validated results automatically overwrite the selected translated fields and publish a new revision.'),
     ];
+    $types = [
+      'node' => $this->t('Basic page'),
+      'product_generic' => $this->t('Generic product'),
+      'product_solidex' => $this->t('SOLIDEX product'),
+    ];
+    $initial_type = $query?->get('entity_type', 'node');
+    $initial_type = isset($types[$initial_type]) ? $initial_type : 'node';
+    $type = $form_state->getValue('entity_type', $initial_type);
+    $type = isset($types[$type]) ? $type : 'node';
+    $previous_type = $form_state->get('selected_entity_type');
+    $changed = $previous_type !== NULL && $previous_type !== $type;
+    if ($changed) {
+      $input = $form_state->getUserInput();
+      $input['entity_id'] = '';
+      $form_state->setUserInput($input);
+      $form_state->setValue('entity_id', '');
+    }
+    $form_state->set('selected_entity_type', $type);
+    $default_entity = NULL;
+    if ($previous_type === NULL && $type === $initial_type && $query?->get('entity_id')) {
+      $candidate = $this->entities->getStorage($type)->load($query->get('entity_id'));
+      if ($candidate && $candidate->access('update') && ($type !== 'node' || $candidate->bundle() === 'page')) {
+        $default_entity = $candidate;
+      }
+    }
     $form['entity_type'] = [
       '#type' => 'select',
       '#title' => $this->t('Entity type'),
-      '#options' => [
-        'node' => $this->t('Basic page'),
-        'product_generic' => $this->t('Generic product'),
-        'product_solidex' => $this->t('SOLIDEX product'),
-      ],
-      '#default_value' => $query?->get('entity_type', 'node'),
+      '#options' => $types,
+      '#default_value' => $type,
       '#required' => TRUE,
+      '#ajax' => ['callback' => '::refreshEntity', 'wrapper' => 'localization-entity-selector'],
+      '#limit_validation_errors' => [['entity_type']],
     ];
     $form['entity_id'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Entity ID'),
-      '#default_value' => $query?->get('entity_id', ''),
+      '#type' => 'entity_autocomplete',
+      '#title' => $this->t('Content'),
+      '#description' => $this->t('Search by title and select the content to localize.'),
+      '#target_type' => $type,
+      '#maxlength' => 1024,
+      '#selection_settings' => $type === 'node' ? ['target_bundles' => ['page']] : [],
+      '#default_value' => $default_entity,
       '#required' => TRUE,
-      '#maxlength' => 128,
+      '#prefix' => '<div id="localization-entity-selector">',
+      '#suffix' => '</div>',
     ];
+    if ($changed) {
+      $form['entity_id']['#value'] = '';
+    }
     $languages = [];
     foreach ($this->languageManager->getLanguages() as $code => $language) {
       $languages[$code] = $language->getName() . ' (' . $code . ')';
@@ -80,13 +116,7 @@ final class EnqueueForm extends FormBase {
       '#default_value' => $query?->get('source_lang', isset($languages['en']) ? 'en' : $this->languageManager->getDefaultLanguage()->getId()),
       '#required' => TRUE,
     ];
-    $form['targets'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Target languages and markets'),
-      '#description' => $this->t('Enter one configured language code and explicit market per line, separated by a colon; for example de:DE. Only one market may write to each CMS language per batch.'),
-      '#required' => TRUE,
-      '#rows' => 5,
-    ];
+    $this->addTargetLanguageFields($form, $languages);
     $form['actions']['#type'] = 'actions';
     $form['regenerate'] = [
       '#type' => 'checkbox',
@@ -101,35 +131,25 @@ final class EnqueueForm extends FormBase {
   }
 
   /**
+   * Replaces the autocomplete when the selected entity type changes.
+   */
+  public function refreshEntity(array &$form, FormStateInterface $form_state): array {
+    return $form['entity_id'];
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
-    $targets = [];
-    $seen = [];
-    $languages = $this->languageManager->getLanguages();
-    foreach (preg_split('/\R/u', (string) $form_state->getValue('targets')) ?: [] as $line) {
-      if (trim($line) === '') {
-        continue;
-      }
-      $parts = array_map('trim', explode(':', $line, 2));
-      if (count($parts) !== 2 || !isset($languages[$parts[0]]) || $parts[1] === '') {
-        $form_state->setErrorByName('targets', $this->t('Each line must contain a configured language code and a nonempty market, for example de:DE.'));
-        return;
-      }
-      [$language, $market] = $parts;
-      if (isset($seen[$language]) || $language === $form_state->getValue('source_lang')) {
-        $form_state->setErrorByName('targets', $this->t('Each target language must be unique and different from the source language.'));
-        return;
-      }
-      $seen[$language] = TRUE;
-      $targets[] = [
-        'langcode' => $language,
-        'market' => $market,
-        'regenerate' => (bool) $form_state->getValue('regenerate'),
-      ];
+    if (($form_state->getTriggeringElement()['#name'] ?? '') === 'entity_type') {
+      return;
     }
-    if (!$targets) {
-      $form_state->setErrorByName('targets', $this->t('Enter at least one target language and market.'));
+    $targets = $this->validateTargetLanguages($form_state);
+    $id = $form_state->getValue('entity_id');
+    $type = $form_state->getValue('entity_type');
+    $entity = $id ? $this->entities->getStorage($type)->load($id) : NULL;
+    if (!$entity || !$entity->access('update') || ($type === 'node' && $entity->bundle() !== 'page')) {
+      $form_state->setErrorByName('entity_id', $this->t('Select existing content that you can update.'));
     }
     $form_state->set('parsed_targets', $targets);
   }

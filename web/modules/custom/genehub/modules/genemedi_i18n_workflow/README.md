@@ -31,7 +31,7 @@ JSON:API 必须在站点现有配置中允许写操作，worker 账户还需拥�
 ## 后台入口与入队
 
 - 任务概览：`/admin/content/genemedi-i18n-workflow`。
-- 入队表单：`/admin/content/genemedi-i18n-workflow/queue`。
+- 入队表单：`/admin/content/genemedi-i18n-workflow/queue`。按标题自动补全选择实体，切换实体类型时刷新候选范围；Basic page 仅检索 page 节点。目标语言使用与批量操作相同的复选框及市场配置，源语言保持单选。
 - 支持的实体列表操作中提供 `Queue localization task`。
 
 ### 批量入队

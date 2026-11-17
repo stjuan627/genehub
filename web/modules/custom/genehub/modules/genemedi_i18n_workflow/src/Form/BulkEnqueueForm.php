@@ -19,6 +19,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 final class BulkEnqueueForm extends FormBase {
 
+  use TargetLanguageFieldsTrait;
+
   /**
    * Constructs the bulk language form.
    */
@@ -94,30 +96,7 @@ final class BulkEnqueueForm extends FormBase {
       '#default_value' => isset($options['en']) ? 'en' : $this->languages->getDefaultLanguage()->getId(),
       '#required' => TRUE,
     ];
-    $form['target_languages'] = [
-      '#type' => 'checkboxes',
-      '#title' => $this->t('Target languages'),
-      '#options' => $options,
-      '#description' => $this->t('Select at least one language different from the source language.'),
-    ];
-    $defaults = ['en' => 'US', 'zh-hans' => 'CN', 'ja' => 'JP', 'fr' => 'FR', 'ko' => 'KR', 'ru' => 'RU'];
-    $form['markets'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Target markets'),
-      '#description' => $this->t('Confirm the intended market for each selected language. Language alone does not determine the market.'),
-      '#open' => TRUE,
-      '#tree' => TRUE,
-    ];
-    foreach ($options as $code => $label) {
-      $form['markets'][$code] = [
-        '#type' => 'textfield',
-        '#title' => $this->t('@language market', ['@language' => $label]),
-        '#default_value' => $defaults[$code] ?? '',
-        '#maxlength' => 64,
-        '#size' => 20,
-        '#states' => ['visible' => [':input[name="target_languages[' . $code . ']"]' => ['checked' => TRUE]]],
-      ];
-    }
+    $this->addTargetLanguageFields($form, $options);
     $form['regenerate'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Create a new task generation even if a matching task exists'),
@@ -142,26 +121,7 @@ final class BulkEnqueueForm extends FormBase {
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
     $source = (string) $form_state->getValue('source_lang');
-    $targets = [];
-    foreach (array_filter($form_state->getValue('target_languages', [])) as $code) {
-      if ($code === $source) {
-        $form_state->setErrorByName('target_languages', $this->t('Target languages must differ from the source language.'));
-      }
-      $market = trim((string) $form_state->getValue(['markets', $code]));
-      if ($market === '') {
-        $form_state->setErrorByName('markets][' . $code, $this->t('Enter the market for @language.', [
-          '@language' => $code,
-        ]));
-      }
-      $targets[] = [
-        'langcode' => $code,
-        'market' => $market,
-        'regenerate' => (bool) $form_state->getValue('regenerate'),
-      ];
-    }
-    if (!$targets) {
-      $form_state->setErrorByName('target_languages', $this->t('Select at least one target language.'));
-    }
+    $targets = $this->validateTargetLanguages($form_state);
     $selection = $form_state->get('selection');
     if (!$selection) {
       $form_state->setErrorByName('selected', $this->t('No content selected.'));

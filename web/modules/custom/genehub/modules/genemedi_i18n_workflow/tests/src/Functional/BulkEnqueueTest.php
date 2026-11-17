@@ -157,6 +157,59 @@ final class BulkEnqueueTest extends BrowserTestBase {
   }
 
   /**
+   * Tests title autocomplete scope, type switching and checkbox targets.
+   */
+  public function testManualQueueAutocompleteAndLanguages(): void {
+    $page = $this->drupalCreateNode(['type' => 'page', 'title' => 'Autocomplete page', 'langcode' => 'en']);
+    $this->drupalCreateContentType(['type' => 'article']);
+    $this->drupalCreateNode(['type' => 'article', 'title' => 'Autocomplete article']);
+    $product = GenericProduct::create(['langcode' => 'en', 'product_name' => 'Autocomplete product']);
+    $product->save();
+    $path = '/admin/content/genemedi-i18n-workflow/queue';
+    $this->drupalGet($path, ['query' => ['entity_type' => 'node', 'entity_id' => $page->id()]]);
+    $this->assertSession()->fieldValueEquals('entity_id', 'Autocomplete page (' . $page->id() . ')');
+    $input = $this->assertSession()->elementExists('css', 'input[name="entity_id"][data-autocomplete-path]');
+    $autocomplete = $input->getAttribute('data-autocomplete-path');
+    $parameters = [
+      'entity_type' => 'product_generic',
+      'entity_id' => 'Autocomplete page (' . $page->id() . ')',
+      '_triggering_element_name' => 'entity_type',
+      'ajax_form' => '1',
+    ];
+    foreach (['form_build_id', 'form_token', 'form_id'] as $name) {
+      $parameters[$name] = $this->getSession()->getPage()->find('css', 'input[name="' . $name . '"]')->getAttribute('value');
+    }
+    // Exercise the real AJAX callback with the authenticated browser cookies.
+    $client = $this->getSession()->getDriver()->getClient();
+    $ajax_url = $this->buildUrl($path, [
+      'query' => ['_wrapper_format' => 'drupal_ajax', 'ajax_form' => '1'],
+    ]);
+    $client->request('POST', $ajax_url, $parameters);
+    $this->assertSame(200, $client->getResponse()->getStatusCode());
+    $commands = json_decode($client->getResponse()->getContent(), TRUE, 512, JSON_THROW_ON_ERROR);
+    $replaced = array_values(array_filter($commands, static fn(array $command): bool => ($command['command'] ?? '') === 'insert'));
+    $this->assertNotEmpty($replaced);
+    $this->assertStringContainsString('/entity_reference_autocomplete/product_generic/', $replaced[0]['data']);
+    $this->assertStringNotContainsString('Autocomplete page', $replaced[0]['data']);
+    $this->assertSame(0, $this->taskCount());
+
+    $this->drupalGet($autocomplete, ['query' => ['q' => 'Autocomplete']]);
+    $suggestions = json_decode($this->getSession()->getPage()->getContent(), TRUE, 512, JSON_THROW_ON_ERROR);
+    $this->assertCount(1, $suggestions);
+    $this->assertStringContainsString('Autocomplete page', $suggestions[0]['value']);
+    $this->drupalGet($path, ['query' => ['entity_type' => 'product_generic', 'entity_id' => $product->id()]]);
+    $this->assertSession()->fieldValueEquals('entity_id', 'Autocomplete product (' . $product->id() . ')');
+    $this->submitForm(['target_languages[fr]' => TRUE, 'target_languages[ja]' => TRUE], 'Queue localization tasks');
+    $this->assertSession()->pageTextContains('Localization tasks are ready: 2.');
+    $this->assertSame(2, $this->taskCount());
+    $targets = $this->container->get('database')->select('genemedi_i18n_task', 't')->fields('t', [
+      'target_lang', 'market',
+    ])
+      ->condition('entity_type', 'product_generic')->condition('entity_id', (string) $product->id())->execute()->fetchAllKeyed();
+    $this->assertEquals(['fr' => 'FR', 'ja' => 'JP'], $targets);
+  }
+
+  /**
    * Counts persisted tasks independently of the UI's success messages.
    */
   private function taskCount(): int {

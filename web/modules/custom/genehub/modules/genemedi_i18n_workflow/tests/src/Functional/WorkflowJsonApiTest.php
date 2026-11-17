@@ -218,6 +218,32 @@ final class WorkflowJsonApiTest extends BrowserTestBase {
     $this->drupalGet('/admin/content/genemedi-i18n-workflow');
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->linkExists('Queue localization task');
+    $this->assertSession()->linkByHrefExists($source->toUrl('edit-form')->toString());
+    $this->assertSession()->linkExists('English source');
+    // Add enough isolated task fixtures to verify actual database pagination.
+    $database = $this->container->get('database');
+    $fixture = $database->select('genemedi_i18n_task', 't')->fields('t')
+      ->condition('id', $task_id)->execute()->fetchAssoc();
+    unset($fixture['id']);
+    for ($i = 0; $i < 51; $i++) {
+      $fixture['dedup_key'] = hash('sha256', 'pagination-fixture-' . $i);
+      if ($i === 50) {
+        // Historical tasks must remain visible after source content deletion.
+        $fixture['entity_id'] = '999999';
+      }
+      $database->insert('genemedi_i18n_task')->fields($fixture)->execute();
+    }
+    $this->drupalGet('/admin/content/genemedi-i18n-workflow');
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->elementsCount('css', 'table tbody tr', 50);
+    $this->assertSession()->pageTextContains('node:999999');
+    $this->assertSession()->linkExists('English source');
+    $this->assertSession()->elementExists('css', 'nav.pager');
+    $this->drupalGet('/admin/content/genemedi-i18n-workflow', ['query' => ['page' => 1]]);
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->elementsCount('css', 'table tbody tr', 3);
+    $this->assertSession()->pageTextNotContains('node:999999');
+    $this->assertSession()->linkExists('English source');
     $this->drupalGet('/admin/content/genemedi-i18n-workflow/queue');
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->buttonExists('Queue localization tasks');
