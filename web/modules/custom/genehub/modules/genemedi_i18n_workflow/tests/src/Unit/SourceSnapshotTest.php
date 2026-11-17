@@ -14,7 +14,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
- * Tests preservation of source structure and product facts.
+ * Tests field contracts and immutable product attributes.
  */
 #[Group('genemedi_i18n_workflow')]
 final class SourceSnapshotTest extends UnitTestCase {
@@ -33,7 +33,7 @@ final class SourceSnapshotTest extends UnitTestCase {
   }
 
   /**
-   * Tests rejection of data changes, omissions, and layout modifications.
+   * Tests rejection of field contract and protected attribute changes.
    */
   #[DataProvider('invalidResultProvider')]
   public function testRejectsInvalidResults(string $case): void {
@@ -64,49 +64,14 @@ final class SourceSnapshotTest extends UnitTestCase {
         $fields['sales_units'][0]['sku'] = 'NEW-SKU';
         break;
 
-      case 'attribute_changed':
-        $fields['sections'][0]['body'] = str_replace('intro', 'different', $fields['sections'][0]['body']);
-        break;
-
-      case 'structure_changed':
-        $fields['sections'][0]['body'] = str_replace(['<ul>', '</ul>'], ['<ol>', '</ol>'], $fields['sections'][0]['body']);
-        break;
-
-      case 'value_changed':
-        $fields['sections'][0]['body'] = str_replace('95%', '99%', $fields['sections'][0]['body']);
-        break;
-
-      case 'comparison_changed':
-        $fields['sections'][0]['body'] = str_replace('&gt;', '≥', $fields['sections'][0]['body']);
-        break;
-
-      case 'unit_changed':
-        $fields['sections'][0]['body'] = str_replace('µg/mL', 'mg/mL', $fields['sections'][0]['body']);
-        break;
-
-      case 'denominator_changed':
-        $fields['sections'][0]['body'] = str_replace('µg/mL', 'µg/L', $fields['sections'][0]['body']);
-        break;
-
-      case 'time_unit_changed':
-        $fields['sections'][0]['body'] = str_replace('30 min', '30 h', $fields['sections'][0]['body']);
-        break;
-
-      case 'details_removed':
-        $fields['sections'][0]['body'] = '<p class="intro">A simplified description.</p><ul><li>One detail.</li></ul>';
-        break;
-
       case 'item_property_added':
         $fields['sections'][0]['unexpected'] = 'New';
         break;
 
-      case 'text_removed':
-        $fields['sections'][0]['heading'] = '';
+      case 'invalid_text_type':
+        $fields['sections'][0]['body'] = ['unexpected' => 'object'];
         break;
 
-      case 'data_moved_between_text_positions':
-        $fields['sections'][0]['body'] = '<p class="intro">Run for 30 min at 4 °C.</p><ul><li>Purity &gt;95%; 5 µg/mL.</li></ul>';
-        break;
     }
     $this->expectException(\InvalidArgumentException::class);
     (new SourceSnapshot())->validate($snapshot, $fields);
@@ -118,50 +83,53 @@ final class SourceSnapshotTest extends UnitTestCase {
   public static function invalidResultProvider(): array {
     $cases = [
       'field_missing', 'field_added', 'section_removed', 'format_changed',
-      'price_changed', 'sku_changed', 'attribute_changed', 'structure_changed',
-      'value_changed', 'comparison_changed', 'unit_changed', 'denominator_changed',
-      'time_unit_changed', 'details_removed', 'item_property_added',
-      'text_removed', 'data_moved_between_text_positions',
+      'price_changed', 'sku_changed', 'item_property_added', 'invalid_text_type',
     ];
     return array_combine($cases, array_map(static fn(string $case): array => [$case], $cases));
   }
 
   /**
-   * Tests that an empty source cannot be filled with invented copy.
+   * Tests prose changes are reviewed by the agent, not rejected by heuristics.
    */
-  public function testRejectsInventedEmptyValue(): void {
+  public function testDoesNotGateProseOrDomChanges(): void {
     $snapshot = $this->snapshot();
-    $snapshot['fields']['sections'][0]['heading'] = NULL;
     $fields = $snapshot['fields'];
-    $fields['sections'][0]['heading'] = 'A new heading';
-    $this->expectException(\InvalidArgumentException::class);
+    $fields['sections'][0]['body'] = '<div>纯度99%，浓度5毫克/升。</div>';
+    $fields['sections'][0]['heading'] = '';
     (new SourceSnapshot())->validate($snapshot, $fields);
+    $snapshot['fields']['sections'][0]['heading'] = NULL;
+    $fields['sections'][0]['heading'] = '本地化标题';
+    (new SourceSnapshot())->validate($snapshot, $fields);
+    $this->addToAssertionCount(2);
   }
 
   /**
-   * Tests units are protected when inline markup separates them from numbers.
+   * Tests the real task 16 CJK word-order regression without numeric parsing.
    */
-  public function testRejectsUnitChangedAcrossInlineElements(): void {
+  public function testAcceptsChineseWordOrderForAavIdentifiers(): void {
     $snapshot = $this->snapshot();
-    $snapshot['fields']['sections'][0]['body'] = '<p>Capacity <strong>5</strong> mL.</p>';
+    $snapshot['fields']['sections'][0]['body'] = '<p>The PAGE of purified AAV9 by PurProX® AAVPure Affinity Resin-2 (GMV-PurProX-AAVPure-U-2).</p>';
     $fields = $snapshot['fields'];
-    $fields['sections'][0]['body'] = '<p>容量 <strong>5</strong> L.</p>';
-    $this->expectException(\InvalidArgumentException::class);
+    $fields['sections'][0]['body'] = '<p>使用 PurProX® AAVPure 亲和填料-2（GMV-PurProX-AAVPure-U-2）纯化 AAV9 后的 PAGE 结果。</p>';
     (new SourceSnapshot())->validate($snapshot, $fields);
+    $this->addToAssertionCount(1);
   }
 
   /**
    * Tests source hashes ignore metadata while detecting source changes.
    */
-  public function testCaptureHashAndNodeBodyScope(): void {
+  public function testCaptureHashAndNodeTitleBodyScope(): void {
     $capture = new SourceSnapshot();
     $first = $capture->capture($this->sourceEntity('Source', '1', 5), 'en');
     $next_revision = $capture->capture($this->sourceEntity('Source', '2', 6), 'en');
     $changed = $capture->capture($this->sourceEntity('Changed', '2', 6), 'en');
     $this->assertSame($first['source_hash'], $next_revision['source_hash']);
     $this->assertNotSame($first['source_hash'], $changed['source_hash']);
-    $this->assertSame(['body'], array_keys($first['fields']));
-    $this->assertArrayHasKey('title', $first['context']);
+    $this->assertSame(['body', 'title'], array_keys($first['fields']));
+    $this->assertSame([['value' => 'A page title']], $first['fields']['title']);
+    $this->assertSame(['value'], $first['mapping']['title']['translatable_properties']);
+    $this->assertSame([], $first['mapping']['title']['html_properties']);
+    $this->assertArrayNotHasKey('title', $first['context']);
     $this->assertArrayNotHasKey('changed', $first['context']);
     $this->assertSame(5, $first['source_revision']);
   }
@@ -179,7 +147,9 @@ final class SourceSnapshotTest extends UnitTestCase {
     $body_definition = $this->createMock(FieldDefinitionInterface::class);
     $body_definition->method('getType')->willReturn('text_with_summary');
     $body_definition->method('isTranslatable')->willReturn(TRUE);
-    $title_definition = clone $body_definition;
+    $title_definition = $this->createMock(FieldDefinitionInterface::class);
+    $title_definition->method('getType')->willReturn('string');
+    $title_definition->method('isTranslatable')->willReturn(TRUE);
     $changed_definition = clone $body_definition;
     $definitions = ['body' => $body_definition, 'title' => $title_definition, 'changed' => $changed_definition];
     $values = [

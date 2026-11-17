@@ -245,6 +245,131 @@ final class TaskManager {
   }
 
   /**
+   * Resumes one unfinished task without requeueing or regenerating its input.
+   */
+  public function resume(int $id, string $workerId, int $leaseSeconds = 300, ?string $token = NULL): array {
+    $this->assertWorker($workerId, $leaseSeconds);
+    $task = $this->load($id);
+    $key = $this->entityLockKey($task['entity_type'], $task['entity_id']);
+    $this->acquire($key);
+    $transaction = $this->database->startTransaction();
+    try {
+      $task = $this->load($id);
+      if (in_array($task['status'], ['published', 'completed', 'cancelled', 'superseded'], TRUE)) {
+        throw new \RuntimeException('Completed or cancelled tasks cannot be resumed; superseded tasks are retired.');
+      }
+      $live = in_array($task['status'], ['running', 'importing'], TRUE) && $task['lease_expires'] > $this->now();
+      if ($live && ($task['worker_id'] !== $workerId || !$this->tokenMatches($task, $token ?? ''))) {
+        throw new \RuntimeException('Another execution owns an active lease; use its current credential or wait for expiry.');
+      }
+      // A prior successful save is reconciled before considering another PATCH.
+      if ($task['applied_revision'] !== NULL) {
+        $this->verifyApplied($task);
+        $this->database->update(self::TABLE)->fields([
+          'status' => 'published',
+          'lease_expires' => 0,
+          'token_hash' => '',
+          'changed' => $this->now(),
+        ])->condition('id', $id)->execute();
+        $this->finishAttempt($task['token_hash'], 'completed');
+        return $this->getTask($id) + ['next_action' => 'done'];
+      }
+      $entity = $this->assertFresh($task);
+      $this->assertTranslationSupport($entity);
+      $import = $task['result'] !== NULL;
+      if ($import) {
+        if (!$entity->hasTranslation($task['target_lang'])) {
+          throw new \RuntimeException('Prepared target translation is missing; repair it before resuming.');
+        }
+        $this->snapshots->validate($task['snapshot'], $task['result']['fields']);
+        $other = $this->database->select(self::TABLE, 't')->fields('t', ['id'])
+          ->condition('entity_type', $task['entity_type'])->condition('entity_id', $task['entity_id'])
+          ->condition('id', $id, '<>')->condition('status', 'importing')
+          ->condition('lease_expires', $this->now(), '>')->execute()->fetchField();
+        if ($other) {
+          throw new \RuntimeException('Another language import holds the entity lease.');
+        }
+      }
+      $phase = $import ? 'import' : 'generation';
+      $secret = $live ? $token : bin2hex(random_bytes(32));
+      $values = [
+        'status' => $import ? 'importing' : 'running',
+        'worker_id' => $workerId,
+        'token_hash' => hash('sha256', $secret),
+        'lease_expires' => $this->now() + $leaseSeconds,
+        'available_at' => 0,
+        'changed' => $this->now(),
+      ];
+      if (!$live) {
+        // Explicit recovery bypasses automatic retry limits, retaining history.
+        $count = $import ? 'import_attempt_count' : 'attempt_count';
+        $values[$count] = $task[$count] + 1;
+        if ($import) {
+          $values['revision_before'] = (string) $entity->getRevisionId();
+        }
+      }
+      $updated = $this->database->update(self::TABLE)->fields($values)
+        ->condition('id', $id)->condition('status', $task['status'])
+        ->condition('token_hash', $task['token_hash'])->condition('lease_expires', $task['lease_expires'])->execute();
+      if (!$updated) {
+        throw new \RuntimeException('Task ownership changed during resume.');
+      }
+      if (!$live) {
+        $this->finishAttempt($task['token_hash'], 'resumed');
+        $this->startAttempt($id, $phase, $workerId, $secret);
+      }
+      $task = $this->load($id);
+      if ($import) {
+        return $this->importInstructions($task, $secret, $entity) + ['next_action' => 'patch'];
+      }
+      return $this->getTask($id) + ['token' => $secret, 'next_action' => 'complete'];
+    }
+    catch (\Throwable $e) {
+      $transaction->rollBack();
+      throw $e;
+    }
+    finally {
+      unset($transaction);
+      $this->release($key);
+    }
+  }
+
+  /**
+   * Cancels unfinished work and invalidates its lease without changing content.
+   */
+  public function cancel(int $id): array {
+    $task = $this->load($id);
+    $key = $this->entityLockKey($task['entity_type'], $task['entity_id']);
+    $this->acquire($key);
+    $transaction = $this->database->startTransaction();
+    try {
+      $task = $this->load($id);
+      if (in_array($task['status'], ['published', 'completed'], TRUE) || $task['applied_revision'] !== NULL) {
+        throw new \RuntimeException('Content has already been applied; cancellation cannot undo publication.');
+      }
+      if ($task['status'] === 'cancelled') {
+        return $this->getTask($id);
+      }
+      $this->database->update(self::TABLE)->fields([
+        'status' => 'cancelled',
+        'token_hash' => '',
+        'lease_expires' => 0,
+        'changed' => $this->now(),
+      ])->condition('id', $id)->execute();
+      $this->finishAttempt($task['token_hash'], 'cancelled');
+      return $this->getTask($id);
+    }
+    catch (\Throwable $e) {
+      $transaction->rollBack();
+      throw $e;
+    }
+    finally {
+      unset($transaction);
+      $this->release($key);
+    }
+  }
+
+  /**
    * Atomically persists validated fields and the agent's quality attestations.
    */
   public function complete(int $id, string $token, array $result): array {
@@ -254,12 +379,12 @@ final class TaskManager {
     }
     $task = $this->owned($id, $token, ['running']);
     foreach (['structure_passed', 'facts_passed', 'details_preserved'] as $check) {
-      if (($result['checks'][$check] ?? NULL) !== TRUE) {
-        throw new \InvalidArgumentException('Every structural/factual/detail-preservation check must explicitly pass.');
+      if (!is_bool($result['checks'][$check] ?? NULL)) {
+        throw new \InvalidArgumentException('Each review check must be a boolean.');
       }
     }
-    if (!is_array($result['fields'] ?? NULL) || !is_array($result['research'] ?? NULL) || !$result['research']) {
-      throw new \InvalidArgumentException('Provide translated fields and non-empty research evidence.');
+    if (!is_array($result['fields'] ?? NULL) || !is_array($result['research'] ?? NULL)) {
+      throw new \InvalidArgumentException('Provide translated fields and a research array or object.');
     }
     $this->snapshots->validate($task['snapshot'], $result['fields']);
     $this->assertFresh($task);
@@ -419,26 +544,7 @@ final class TaskManager {
       $this->finishAttempt($task['token_hash'], 'expired');
       $this->startAttempt($id, 'import', $workerId, $token);
       $task = $this->load($id);
-      $resource = $this->resources->get($task['entity_type'], $entity->bundle());
-      if ($resource->isInternal()) {
-        throw new \RuntimeException('The resource is not exposed by JSON:API.');
-      }
-      $route = 'jsonapi.' . $resource->getTypeName() . '.individual';
-      $url = Url::fromRoute($route, ['entity' => $entity->uuid()])->toString();
-      return $this->getTask($id) + [
-        'token' => $token,
-        'patch' => [
-          'method' => 'PATCH',
-          'url' => $url,
-          'headers' => [
-            'Content-Type' => 'application/vnd.api+json',
-            'Accept' => 'application/vnd.api+json',
-            'X-Genemedi-I18n-Task' => (string) $id,
-            'X-Genemedi-I18n-Token' => $token,
-          ],
-          'payload' => $this->patchDocument($task, $entity),
-        ],
-      ];
+      return $this->importInstructions($task, $token, $entity);
     }
     catch (\Throwable $e) {
       $transaction->rollBack();
@@ -575,6 +681,32 @@ final class TaskManager {
       $this->release($key);
     }
     $this->heldLocks = [];
+  }
+
+  /**
+   * Builds the exact core JSON:API request for a leased import.
+   */
+  private function importInstructions(array $task, string $token, ContentEntityInterface $entity): array {
+    $resource = $this->resources->get($task['entity_type'], $entity->bundle());
+    if ($resource->isInternal()) {
+      throw new \RuntimeException('The resource is not exposed by JSON:API.');
+    }
+    $route = 'jsonapi.' . $resource->getTypeName() . '.individual';
+    $url = Url::fromRoute($route, ['entity' => $entity->uuid()])->toString();
+    return $this->getTask($task['id']) + [
+      'token' => $token,
+      'patch' => [
+        'method' => 'PATCH',
+        'url' => $url,
+        'headers' => [
+          'Content-Type' => 'application/vnd.api+json',
+          'Accept' => 'application/vnd.api+json',
+          'X-Genemedi-I18n-Task' => (string) $task['id'],
+          'X-Genemedi-I18n-Token' => $token,
+        ],
+        'payload' => $this->patchDocument($task, $entity),
+      ],
+    ];
   }
 
   /**

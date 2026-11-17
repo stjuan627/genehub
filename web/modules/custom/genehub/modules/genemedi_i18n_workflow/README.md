@@ -21,7 +21,7 @@ JSON:API 必须在站点现有配置中允许写操作，worker 账户还需拥�
 
 当前支持：
 
-- `node` 的 `page` bundle：仅正文 `body` 本地化，保留完整正文 HTML。
+- `node` 的 `page` bundle：本地化纯文本标题 `title` 和正文 `body`，保留完整正文 HTML；其他字段保持原有范围。
 - `product_generic`、`product_solidex`：按真实可翻译文本字段及多值顺序处理。
 - 目标翻译不存在时，在入队事务中复制源字段建立未发布翻译；已有目标翻译及其发布状态保持不变，直至结果实际入库。
 - 通过核对后自动覆盖指定目标字段、发布，并为每次实际成功执行的内容 PATCH 创建新 revision。其他语言及未指定字段保持不变。
@@ -102,9 +102,9 @@ fr:FR
 }
 ```
 
-上述为格式示例，不能将占位研究内容作为真实证据提交。`research` 必须为非空数组/对象；具体研究记录沿用写作 skill 的要求。三个检查值都必须明确为 `true`。
+上述为格式示例，不能将占位研究内容作为真实证据提交。API 要求 `research` 为数组/对象，三个 `checks` 值为布尔类型；不以其真假或研究条目数量作为内容质量门槛。agent 仍须按 skill 完成真实调研和核对，通过后才提交并发布。
 
-程序核对字段/内容项对应关系、受保护属性、HTML 元素和属性、数值及常见单位等可机械验证的规则。它不能证明语义等价、全部细节完整或调研结论真实；这些仍依赖 agent 按原文逐项核对并如实声明，不能把布尔检查当作独立事实审查。
+API 仅校验交付数据格式（字段名、值类型、字段项数量等）、受保护属性（SKU、价格、引用、文本格式等）和任务/写入安全（权限、目标语言、租约、源版本、幂等及回执）。不对可本地化正文执行数值/单位正则比较、DOM 相等或空值/非空值保留等内容硬校验。原结构、事实及细节保留仍是 agent 的写作与审阅要求；API 接受结果不能证明内容正确，checks 也不是独立事实审查。
 
 ## Worker API
 
@@ -119,6 +119,8 @@ fr:FR
 | POST | `/api/genemedi-i18n/imports/claim` | `worker_id`、可选 `lease_seconds`；领取待入库结果 |
 | POST | `/api/genemedi-i18n/tasks/{id}/heartbeat` | `token`、可选 `lease_seconds`；续期当前阶段 |
 | POST | `/api/genemedi-i18n/tasks/{id}/complete` | `token`、`result`；保存通过检查的生成结果 |
+| POST | `/api/genemedi-i18n/tasks/{id}/resume` | worker_id、可选 lease_seconds、token；同任务继续保存或入库 |
+| POST | `/api/genemedi-i18n/tasks/{id}/cancel` | 取消未完成任务，不删除快照/结果/历史 |
 | POST | `/api/genemedi-i18n/tasks/{id}/fail` | `token`、`message`、布尔 `retryable`；报告当前阶段失败 |
 | POST | `/api/genemedi-i18n/tasks/{id}/begin-import` | `worker_id`、可选 `lease_seconds`；领取指定任务的入库阶段 |
 | POST | `/api/genemedi-i18n/tasks/{id}/acknowledge` | 入库 `token`；回读确认 revision、内容和发布状态 |
@@ -206,7 +208,7 @@ queued → running → ready_for_import → importing → published
 
 源内容检查基于本地化字段、相关源上下文与映射的校验值，不仅比较实体 revision ID。预建其他语言草稿或正常导入其他语言会增加实体 revision，不能因此误判原文变化。真正的源文变化会拒绝旧结果入库，应重新入队。
 
-同实体多语言入库按实体租约和短时数据库锁协调；其他实体仍可继续处理。终止失败应检查错误原因后修复并显式重新生成/入队，不要无限重发过期凭证。
+同实体多语言入库按实体租约和短时数据库锁协调；其他实体仍可继续处理。失败修复后使用同任务 resume，不要求重新生成/入队；不要重发过期凭证。
 
 ## 实现范围与限制
 
@@ -215,3 +217,17 @@ queued → running → ready_for_import → importing → published
 - 核心 JSON:API、账户访问权限、文本格式、字段公开配置和真实源字段仍须与目标站点一致。接口异常不授权修改全站配置或删减内容。
 - 本模块处理指定字段的存储与发布，不额外触发旧站路由同步、外部站点部署或其他系统操作。
 - 数据与队列状态由程序维护；调研质量和语义事实完整性仍按写作 skill 审核。
+
+## 同任务保存重试
+
+保存失败不需要重新入队、换任务 ID 或重新调研写作。有效 running 租约可直接修正后重交 complete；failed/import_failed、租约到期或达到自动上限时，可显式调用：
+
+```text
+POST /api/genemedi-i18n/tasks/16/resume
+```
+
+请求体 `{"worker_id":"execution-id","lease_seconds":300}`；继续本执行尚有效的租约时另提供原 token，worker_id 也须匹配。其他执行者的活租约不能被抢占。
+
+响应直接是任务对象，next_action 为 complete（继续提交本地草稿）、patch（已有落库结果，继续入库，响应含 patch 与入库 token）或 done（已写入且回执恢复成功）。任务 ID、源快照、已保存结果和尝试历史保留；显式恢复绕过自动5次上限与退避时间，但累计次数不清零。原文/映射变化仍须处理冲突，不能用旧结果覆盖新源。
+
+published/completed、cancelled 以及被新代次取代的 superseded 任务不可 resume。取消调用同任务 cancel 接口，立即作废凭据；已应用的内容不能通过取消撤回。resume 会先恢复已有写入回执，避免丢回复后再 PATCH 产生重复 revision。

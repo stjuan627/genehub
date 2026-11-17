@@ -131,6 +131,32 @@ genemedi_i18n_workflow.api_begin_import:
   options:
     _auth: [basic_auth, cookie]
 
+genemedi_i18n_workflow.api_resume:
+  path: '/api/genemedi-i18n/tasks/{task}/resume'
+  defaults:
+    _controller: '\Drupal\genemedi_i18n_workflow\Controller\TaskApiController::resume'
+  methods: [POST]
+  requirements:
+    _permission: 'execute genemedi i18n workflow'
+    _user_is_logged_in: 'TRUE'
+    task: '\d+'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    _auth: [basic_auth, cookie]
+
+genemedi_i18n_workflow.api_cancel:
+  path: '/api/genemedi-i18n/tasks/{task}/cancel'
+  defaults:
+    _controller: '\Drupal\genemedi_i18n_workflow\Controller\TaskApiController::cancel'
+  methods: [POST]
+  requirements:
+    _permission: 'execute genemedi i18n workflow'
+    _user_is_logged_in: 'TRUE'
+    task: '\d+'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    _auth: [basic_auth, cookie]
+
 genemedi_i18n_workflow.api_acknowledge:
   path: '/api/genemedi-i18n/tasks/{task}/acknowledge'
   defaults:

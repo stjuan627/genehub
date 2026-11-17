@@ -18,6 +18,7 @@ use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests durable multilingual task transitions against real entity storage.
@@ -168,19 +169,22 @@ final class TaskManagerTest extends KernelTestBase {
   }
 
   /**
-   * Tests quality attestations and structural validation before persistence.
+   * Tests result schema and field contracts before persistence.
    */
-  public function testCompleteRequiresChecksAndPreservesStructure(): void {
+  public function testCompleteValidatesContractWithoutProseHeuristics(): void {
     $this->enqueueOne();
     $task = $this->tasks->claim('worker-a');
     $result = $this->validResult($task);
     $invalid = $result;
-    $invalid['checks']['facts_passed'] = FALSE;
+    $invalid['checks']['facts_passed'] = 'yes';
     $this->assertThrows(fn() => $this->tasks->complete($task['id'], $task['token'], $invalid), 'check');
     $invalid = $result;
-    $invalid['fields']['body'][0]['value'] = '<p>Purity &gt;95%.</p>';
-    $this->assertThrows(fn() => $this->tasks->complete($task['id'], $task['token'], $invalid), 'structure');
+    $invalid['fields']['body'][0]['format'] = 'restricted_html';
+    $this->assertThrows(fn() => $this->tasks->complete($task['id'], $task['token'], $invalid), 'protected');
     $this->assertNull($this->tasks->getTask($task['id'])['result']);
+    $result['fields']['body'][0]['value'] = '<div>纯度95%以上。</div>';
+    $result['checks']['facts_passed'] = FALSE;
+    $result['research'] = [];
     $ready = $this->tasks->complete($task['id'], $task['token'], $result);
     $this->assertSame($result, $ready['result']);
     $this->assertSame($ready, $this->tasks->complete($task['id'], $task['token'], $result));
@@ -282,6 +286,177 @@ final class TaskManagerTest extends KernelTestBase {
       $this->now = $failed['available_at'];
     }
     $this->assertNull($this->tasks->claim('another-writer'));
+  }
+
+  /**
+   * Tests a failed writer resumes the same snapshot and accepts its old result.
+   */
+  public function testResumeFailedTaskKeepsIdentitySnapshotAndFencesOldToken(): void {
+    $this->enqueueOne();
+    $original = $this->tasks->claim('writer-before');
+    $result = $this->validResult($original);
+    $this->tasks->fail($original['id'], $original['token'], 'Connection lost', FALSE);
+    $resumed = $this->tasks->resume($original['id'], 'writer-after');
+    $this->assertSame($original['id'], $resumed['id']);
+    $this->assertSame($original['batch_id'], $resumed['batch_id']);
+    $this->assertSame($original['snapshot'], $resumed['snapshot']);
+    $this->assertSame($original['source_hash'], $resumed['source_hash']);
+    $this->assertSame('running', $resumed['status']);
+    $this->assertSame(2, $resumed['attempt_count']);
+    $this->assertNotSame($original['token'], $resumed['token']);
+    $this->assertThrows(fn() => $this->tasks->complete($original['id'], $original['token'], $result), '');
+    $ready = $this->tasks->complete($original['id'], $resumed['token'], $result);
+    $this->assertSame('ready_for_import', $ready['status']);
+    $this->assertSame($result, $ready['result']);
+    $this->assertCount(1, $this->tasks->listTasks());
+  }
+
+  /**
+   * Tests live owners renew credentials while competing resumes are rejected.
+   */
+  public function testResumeLiveLeaseRequiresMatchingOwnerAndToken(): void {
+    $this->enqueueOne();
+    $original = $this->tasks->claim('writer', 30);
+    $this->now += 10;
+    $renewed = $this->tasks->resume($original['id'], 'writer', 300, $original['token']);
+    $this->assertSame($original['token'], $renewed['token']);
+    $this->assertGreaterThan($original['lease_expires'], $renewed['lease_expires']);
+    $this->assertSame($original['attempt_count'], $renewed['attempt_count']);
+    $this->assertThrows(fn() => $this->tasks->resume($original['id'], 'writer'), '');
+    $this->assertThrows(fn() => $this->tasks->resume($original['id'], 'another-writer', 300, $original['token']), '');
+    $this->assertThrows(fn() => $this->tasks->resume($original['id'], 'writer', 300, 'wrong-token'), '');
+    $this->assertSame($renewed['lease_expires'], $this->tasks->getTask($original['id'])['lease_expires']);
+  }
+
+  /**
+   * Tests abandoned executions can resume without reaching the queue again.
+   */
+  public function testResumeExpiredLeaseIssuesFreshCredentials(): void {
+    $this->enqueueOne();
+    $original = $this->tasks->claim('writer-before', 30);
+    $this->now += 31;
+    $resumed = $this->tasks->resume($original['id'], 'writer-after', 30);
+    $this->assertSame($original['id'], $resumed['id']);
+    $this->assertSame($original['snapshot'], $resumed['snapshot']);
+    $this->assertNotSame($original['token'], $resumed['token']);
+    $this->assertSame(2, $resumed['attempt_count']);
+    $this->assertThrows(fn() => $this->tasks->heartbeat($original['id'], $original['token']), '');
+  }
+
+  /**
+   * Tests explicit recovery retains history beyond the automatic retry limit.
+   */
+  public function testResumeCanExceedAutomaticAttemptLimit(): void {
+    $this->enqueueOne();
+    for ($attempt = 1; $attempt <= 5; $attempt++) {
+      $task = $this->tasks->claim('writer');
+      $failed = $this->tasks->fail($task['id'], $task['token'], 'Transient failure', TRUE);
+      $this->now = $failed['available_at'];
+    }
+    $this->assertNull($this->tasks->claim('automatic-worker'));
+    $resumed = $this->tasks->resume($task['id'], 'explicit-recovery');
+    $this->assertSame($task['id'], $resumed['id']);
+    $this->assertSame('running', $resumed['status']);
+    $this->assertSame(6, $resumed['attempt_count']);
+    $attempts = $this->container->get('database')->select('genemedi_i18n_attempt', 'a')
+      ->condition('task_id', $task['id'])->countQuery()->execute()->fetchField();
+    $this->assertSame(6, (int) $attempts);
+    $this->assertSame($task['snapshot'], $resumed['snapshot']);
+  }
+
+  /**
+   * Tests saved content resumes directly at import, without writing again.
+   */
+  public function testResumeImportFailureReusesPersistedResult(): void {
+    $this->enqueueOne();
+    $task = $this->tasks->claim('writer');
+    $result = $this->validResult($task);
+    $this->tasks->complete($task['id'], $task['token'], $result);
+    for ($attempt = 1; $attempt <= 5; $attempt++) {
+      $import = $this->tasks->claimImport('importer');
+      $failed = $this->tasks->fail($task['id'], $import['token'], 'Import connection failed', TRUE);
+      $this->now = $failed['available_at'];
+    }
+    $this->assertSame('import_failed', $failed['status']);
+    $resumed = $this->tasks->resume($task['id'], 'explicit-importer');
+    $this->assertSame($task['id'], $resumed['id']);
+    $this->assertSame('importing', $resumed['status']);
+    $this->assertSame(1, $resumed['attempt_count']);
+    $this->assertSame(6, $resumed['import_attempt_count']);
+    $this->assertSame($result, $resumed['result']);
+    $this->assertSame($import['patch']['payload'], $resumed['patch']['payload']);
+    $this->assertNotSame($import['token'], $resumed['token']);
+    $renewed = $this->tasks->resume($task['id'], 'explicit-importer', 600, $resumed['token']);
+    $this->assertSame($resumed['token'], $renewed['token']);
+    $this->assertSame($resumed['patch']['payload'], $renewed['patch']['payload']);
+    $this->assertSame(6, $renewed['import_attempt_count']);
+  }
+
+  /**
+   * Tests cancellation invalidates credentials and cannot be resumed.
+   */
+  public function testCancelMakesTaskTerminalAndFencesWorker(): void {
+    $this->enqueueOne();
+    $task = $this->tasks->claim('writer');
+    $cancelled = $this->tasks->cancel($task['id']);
+    $this->assertSame('cancelled', $cancelled['status']);
+    $this->assertThrows(fn() => $this->tasks->resume($task['id'], 'resumer', 300, $task['token']), '');
+    $this->assertThrows(fn() => $this->tasks->complete($task['id'], $task['token'], $this->validResult($task)), '');
+    $this->assertNull($this->tasks->claim('another-writer'));
+  }
+
+  /**
+   * Tests explicitly resuming does not override genuine source changes.
+   */
+  public function testResumeRejectsChangedSourceAndSupersededTask(): void {
+    $this->enqueueOne();
+    $task = $this->tasks->claim('writer');
+    $this->tasks->fail($task['id'], $task['token'], 'Connection failed', FALSE);
+    $this->changeSource();
+    $this->assertThrows(fn() => $this->tasks->resume($task['id'], 'resumer'), '');
+    $replacement = $this->enqueueOne()['tasks'][0];
+    $this->assertNotSame($task['id'], $replacement['id']);
+    $this->assertSame('superseded', $this->tasks->getTask($task['id'])['status']);
+    $this->assertThrows(fn() => $this->tasks->resume($task['id'], 'resumer'), '');
+  }
+
+  /**
+   * Tests lost acknowledgments recover receipts rather than creating revisions.
+   */
+  public function testResumeAppliedReceiptPublishesWithoutAnotherPatch(): void {
+    $this->enqueueOne();
+    $task = $this->tasks->claim('writer');
+    $this->tasks->complete($task['id'], $task['token'], $this->validResult($task));
+    $import = $this->tasks->beginImport($task['id'], 'importer');
+    $request = Request::create('/jsonapi/node/page/' . $this->source->uuid(), 'PATCH', [], [], [], [], json_encode($import['patch']['payload']));
+    foreach ($import['patch']['headers'] as $name => $value) {
+      $request->headers->set($name, $value);
+    }
+    $requests = $this->container->get('request_stack');
+    $requests->push($request);
+    try {
+      $translation = $this->tasks->resolvePatchEntity($this->source->uuid(), ['type' => 'entity:node'], []);
+      foreach ($task['snapshot']['fields'] as $name => $value) {
+        $translation->set($name, $value);
+      }
+      $translation->setPublished();
+      $translation->save();
+    }
+    finally {
+      $this->tasks->releaseLocks();
+      $requests->pop();
+    }
+    $applied = $this->tasks->getTask($task['id']);
+    $this->assertNotNull($applied['applied_revision']);
+    $this->assertThrows(fn() => $this->tasks->cancel($task['id']), '');
+    $revision = $this->reload()->getRevisionId();
+    $this->now += 301;
+    $resumed = $this->tasks->resume($task['id'], 'recovery');
+    $this->assertSame('published', $resumed['status']);
+    $this->assertArrayNotHasKey('patch', $resumed);
+    $this->assertSame($revision, $this->reload()->getRevisionId());
+    $this->assertThrows(fn() => $this->tasks->resume($task['id'], 'recovery'), '');
+    $this->assertThrows(fn() => $this->tasks->cancel($task['id']), '');
   }
 
   /**

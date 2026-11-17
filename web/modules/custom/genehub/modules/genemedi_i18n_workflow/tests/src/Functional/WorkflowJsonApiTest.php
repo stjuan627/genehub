@@ -107,7 +107,20 @@ final class WorkflowJsonApiTest extends BrowserTestBase {
     $task = $claimed['task'];
     $this->assertSame($task_id, $task['id']);
     $fields = $task['snapshot']['fields'];
+    $this->assertSame([['value' => 'English source']], $fields['title']);
+    $fields['title'][0]['value'] = 'Source française';
     $fields['body'][0]['value'] = $target_html;
+    // A reported save failure can resume this same task and existing draft.
+    $this->api('/api/genemedi-i18n/tasks/' . $task_id . '/fail', [
+      'token' => $task['token'],
+      'message' => 'Previous save rejected',
+      'retryable' => FALSE,
+    ]);
+    $old_token = $task['token'];
+    $task = $this->api('/api/genemedi-i18n/tasks/' . $task_id . '/resume', ['worker_id' => 'test-resumed-writer']);
+    $this->assertSame($task_id, $task['id']);
+    $this->assertSame('complete', $task['next_action']);
+    $this->assertNotSame($old_token, $task['token']);
     $ready = $this->api('/api/genemedi-i18n/tasks/' . $task_id . '/complete', [
       'token' => $task['token'],
       'result' => [
@@ -121,6 +134,15 @@ final class WorkflowJsonApiTest extends BrowserTestBase {
     $claimed_import = $this->api('/api/genemedi-i18n/imports/claim', ['worker_id' => 'test-importer']);
     $import = $claimed_import['task'];
     $this->assertSame($task_id, $import['id']);
+    $this->api('/api/genemedi-i18n/tasks/' . $task_id . '/fail', [
+      'token' => $import['token'],
+      'message' => 'Temporary import failure',
+      'retryable' => FALSE,
+    ]);
+    $import = $this->api('/api/genemedi-i18n/tasks/' . $task_id . '/resume', ['worker_id' => 'test-resumed-importer']);
+    $this->assertSame($task_id, $import['id']);
+    $this->assertSame($fields, $import['result']['fields']);
+    $this->assertSame('patch', $import['next_action']);
     $before = $this->reloadNode($source->id());
     $revision_before = (string) $before->getRevisionId();
     $document = $this->api($import['patch']['url'], $import['patch']['payload'], 200, 'PATCH', $import['patch']['headers']);
@@ -128,6 +150,7 @@ final class WorkflowJsonApiTest extends BrowserTestBase {
     $this->assertSame('fr', $document['data']['attributes']['langcode']);
     $this->assertTrue($document['data']['attributes']['status']);
     $this->assertSame($target_html, $document['data']['attributes']['body']['value']);
+    $this->assertSame('Source française', $document['data']['attributes']['title']);
     // Building the actual JSON:API response links re-enters parameter
     // conversion; this catches failures after a successful entity save.
     $this->assertArrayHasKey('self', $document['links']);
@@ -139,16 +162,37 @@ final class WorkflowJsonApiTest extends BrowserTestBase {
     $this->assertSame('English source', $saved->getTranslation('en')->label());
     $this->assertTrue($saved->getTranslation('en')->isPublished());
     $this->assertSame($target_html, $saved->getTranslation('fr')->get('body')->value);
+    $this->assertSame('Source française', $saved->getTranslation('fr')->label());
     $this->assertTrue($saved->getTranslation('fr')->isPublished());
 
     $this->api($import['patch']['url'], $import['patch']['payload'], 409, 'PATCH', $import['patch']['headers']);
     $this->assertSame($revision_after, (string) $this->reloadNode($source->id())->getRevisionId());
+    // Recover a successful PATCH with a lost reply without applying it again.
+    $recovered = $this->api('/api/genemedi-i18n/tasks/' . $task_id . '/resume', [
+      'worker_id' => 'test-resumed-importer',
+      'token' => $import['token'],
+    ]);
+    $this->assertSame('published', $recovered['status']);
+    $this->assertSame('done', $recovered['next_action']);
+    $this->assertArrayNotHasKey('patch', $recovered);
     $published = $this->api('/api/genemedi-i18n/tasks/' . $task_id . '/acknowledge', ['token' => $import['token']]);
     $this->assertSame('published', $published['status']);
     $this->assertSame($revision_after, $published['applied_revision']);
     $this->assertSame($revision_before, $published['revision_before']);
     $this->assertArrayNotHasKey('token_hash', $published);
+    $this->api('/api/genemedi-i18n/tasks/' . $task_id . '/resume', ['worker_id' => 'test-resumed-importer'], 409);
+    $this->api('/api/genemedi-i18n/tasks/' . $task_id . '/cancel', [], 409);
     $this->assertNull($this->api('/api/genemedi-i18n/imports/claim', ['worker_id' => 'another-importer'])['task']);
+
+    $new = $this->api('/api/genemedi-i18n/tasks', [
+      'entity_type' => 'node',
+      'entity_id' => (string) $source->id(),
+      'source_lang' => 'en',
+      'targets' => [['langcode' => 'fr', 'market' => 'FR', 'regenerate' => TRUE]],
+    ], 201)['tasks'][0];
+    $cancelled = $this->api('/api/genemedi-i18n/tasks/' . $new['id'] . '/cancel', []);
+    $this->assertSame('cancelled', $cancelled['status']);
+    $this->api('/api/genemedi-i18n/tasks/' . $new['id'] . '/resume', ['worker_id' => 'test-cancelled'], 409);
 
     $this->drupalLogin($this->worker);
     $this->drupalGet('/admin/content/genemedi-i18n-workflow');

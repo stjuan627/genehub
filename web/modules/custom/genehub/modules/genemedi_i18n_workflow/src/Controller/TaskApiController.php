@@ -107,6 +107,24 @@ final class TaskApiController extends ControllerBase {
   }
 
   /**
+   * Continues the same task, reusing its saved result or the caller's draft.
+   */
+  public function resume(int $task, Request $request): JsonResponse {
+    return $this->respond(function () use ($task, $request): array {
+      $data = $this->body($request);
+      $token = array_key_exists('token', $data) ? $this->text($data, 'token') : NULL;
+      return $this->taskManager->resume($task, $this->text($data, 'worker_id'), $this->lease($data), $token);
+    });
+  }
+
+  /**
+   * Cancels an unfinished task without deleting its history or saved results.
+   */
+  public function cancel(int $task): JsonResponse {
+    return $this->respond(fn() => $this->taskManager->cancel($task));
+  }
+
+  /**
    * Claims an import and obtains its guarded JSON:API PATCH instructions.
    */
   public function beginImport(int $task, Request $request): JsonResponse {

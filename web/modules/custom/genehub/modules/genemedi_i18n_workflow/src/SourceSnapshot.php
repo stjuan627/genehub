@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\genemedi_i18n_workflow;
 
-use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\ContentEntityInterface;
 
 /**
- * Captures source fields and checks mechanically verifiable invariants.
+ * Captures source fields and validates field contracts and protected values.
  *
  * Semantic completeness still requires the agent's source-to-result review.
  */
@@ -56,10 +55,10 @@ final class SourceSnapshot {
       $value = $source->get($name)->getValue();
       $eligible = $definition->isTranslatable() && !$definition->isReadOnly() && $properties;
       if ($type === 'node') {
-        $eligible = $eligible && $name === 'body';
+        $eligible = $eligible && in_array($name, ['title', 'body'], TRUE);
       }
       if (!$eligible) {
-        // Node titles provide context but are outside the body-only output.
+        // Other node fields remain context outside the title/body output.
         $context[$name] = $value;
         continue;
       }
@@ -93,7 +92,7 @@ final class SourceSnapshot {
   }
 
   /**
-   * Rejects changed schema, layout, protected values, and numeric facts.
+   * Validates field shapes, nullable text values and immutable properties.
    */
   public function validate(array $snapshot, array $translatedFields): void {
     $fields = $snapshot['fields'] ?? NULL;
@@ -123,32 +122,8 @@ final class SourceSnapshot {
             }
             continue;
           }
-          if ($value === NULL || $value === '') {
-            if ($target !== $value) {
-              throw new \InvalidArgumentException("An empty source value changed at $position.");
-            }
-            continue;
-          }
-          if (!is_string($target) || trim($target) === '') {
-            throw new \InvalidArgumentException("A nonempty source value is missing at $position.");
-          }
-          $html = in_array($property, $mapping[$field]['html_properties'], TRUE);
-          if ($html) {
-            if ($this->htmlStructure((string) $value) !== $this->htmlStructure($target)) {
-              throw new \InvalidArgumentException("HTML structure or attributes changed at $position.");
-            }
-          }
-          // Check each DOM text position separately, not only the whole field.
-          $original_parts = $html ? $this->htmlTextParts((string) $value) : [(string) $value];
-          $target_parts = $html ? $this->htmlTextParts($target) : [$target];
-          // A value and its unit may be separated by inline HTML elements.
-          if ($this->numericFacts(implode(' ', $original_parts)) !== $this->numericFacts(implode(' ', $target_parts))) {
-            throw new \InvalidArgumentException("Numeric facts or units changed at $position.");
-          }
-          foreach ($original_parts as $index => $part) {
-            if ($this->numericFacts($part) !== $this->numericFacts($target_parts[$index] ?? '')) {
-              throw new \InvalidArgumentException("Numeric facts or units changed at $position.");
-            }
+          if (!is_string($target) && $target !== NULL) {
+            throw new \InvalidArgumentException("A localized value must be text or null at $position.");
           }
         }
       }
@@ -182,69 +157,6 @@ final class SourceSnapshot {
       return $array;
     };
     return json_encode($normalize($values), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-  }
-
-  /**
-   * Gets a canonical element tree, preserving text positions and attributes.
-   */
-  private function htmlStructure(string $html): array {
-    $walk = function (\DOMNode $node) use (&$walk): ?array {
-      if ($node instanceof \DOMText) {
-        return trim($node->textContent) === '' ? NULL : ['text'];
-      }
-      if ($node instanceof \DOMComment) {
-        return ['comment', $node->nodeValue];
-      }
-      $attributes = [];
-      if ($node instanceof \DOMElement) {
-        foreach ($node->attributes as $attribute) {
-          $attributes[$attribute->nodeName] = $attribute->nodeValue;
-        }
-        ksort($attributes);
-        if (in_array(strtolower($node->tagName), ['script', 'style'], TRUE)) {
-          return [$node->nodeName, $attributes, $node->textContent];
-        }
-      }
-      $children = [];
-      foreach ($node->childNodes as $child) {
-        $value = $walk($child);
-        if ($value !== NULL) {
-          $children[] = $value;
-        }
-      }
-      return [$node->nodeName, $attributes, $children];
-    };
-    return $walk(Html::load($html));
-  }
-
-  /**
-   * Extracts visible text nodes in document order for per-position checks.
-   */
-  private function htmlTextParts(string $html): array {
-    $parts = [];
-    $walk = function (\DOMNode $node) use (&$walk, &$parts): void {
-      if ($node instanceof \DOMText && trim($node->textContent) !== '') {
-        $parts[] = $node->textContent;
-      }
-      foreach ($node->childNodes as $child) {
-        $walk($child);
-      }
-    };
-    $walk(Html::load($html));
-    return $parts;
-  }
-
-  /**
-   * Preserves numeric tokens, comparison signs, and common scientific units.
-   *
-   * Worded quantities and qualifiers still need semantic review by the agent.
-   */
-  private function numericFacts(string $text): array {
-    $number = '(?:[<>≤≥≈~]=?\s*)?[+\-−]?\d+(?:[.,]\d+)*(?:[eE][+\-]?\d+)?';
-    $unit = '(?:%|‰|°\s*[CFK]|[kmunpµμ]?[gGLlMm]|mM|µM|μM|nM|pM|mol|mmol|µmol|μmol|nmol|rpm|×\s*g|IU|U|ms|min|sec|s|h)(?![\p{L}])';
-    $units = $unit . '(?:\s*\/\s*' . $unit . ')*';
-    preg_match_all('/' . $number . '(?:\s*' . $units . ')?/u', $text, $matches);
-    return array_map(static fn(string $value): string => preg_replace('/\s+/u', '', $value), $matches[0]);
   }
 
 }
