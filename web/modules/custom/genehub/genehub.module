@@ -11,6 +11,57 @@ use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\menu_link_content\MenuLinkContentInterface;
 use Drupal\node\NodeInterface;
+use Drupal\system\MenuInterface;
+
+/**
+ * Implements hook_ENTITY_TYPE_insert() for menu links.
+ */
+function genehub_menu_link_content_insert(MenuLinkContentInterface $link): void {
+  genehub_menu_link_invalidate($link);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update() for menu links.
+ */
+function genehub_menu_link_content_update(MenuLinkContentInterface $link): void {
+  genehub_menu_link_invalidate($link);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete() for menu links.
+ */
+function genehub_menu_link_content_delete(MenuLinkContentInterface $link): void {
+  genehub_menu_link_invalidate($link);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert() for menus.
+ */
+function genehub_menu_insert(MenuInterface $menu): void {
+  \Drupal::service('genehub.menu_cache_invalidator')->enqueue($menu->id());
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete() for menus.
+ */
+function genehub_menu_delete(MenuInterface $menu): void {
+  \Drupal::service('genehub.menu_cache_invalidator')->enqueue($menu->id());
+}
+
+/**
+ * Invalidates the live menu, including the source menu when a link is moved.
+ */
+function genehub_menu_link_invalidate(MenuLinkContentInterface $link): void {
+  if (!$link->isDefaultRevision() || \Drupal::service('workspaces.manager')->hasActiveWorkspace()) {
+    return;
+  }
+  $invalidator = \Drupal::service('genehub.menu_cache_invalidator');
+  $invalidator->enqueue($link->getMenuName());
+  $previous = $link->getOriginal()?->getMenuName();
+  if ($previous !== NULL && $previous !== $link->getMenuName()) {
+    $invalidator->enqueue($previous);
+  }
+}
 
 /**
  * Implements hook_form_BASE_FORM_ID_alter() for menu link forms.

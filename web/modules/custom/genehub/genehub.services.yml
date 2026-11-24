@@ -1,4 +1,10 @@
 services:
+  genehub.menu_cache_invalidator:
+    class: Drupal\genehub\MenuCacheInvalidator
+    arguments: ['@queue', '@http_client', '@logger.factory']
+    tags:
+      - { name: event_subscriber }
+
   genehub.product_route_sync_client:
     class: Drupal\genehub\ProductRouteSyncClient
     arguments:
