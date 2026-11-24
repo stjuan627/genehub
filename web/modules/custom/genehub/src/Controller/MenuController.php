@@ -37,20 +37,27 @@ final class MenuController extends ControllerBase {
    * Supports GeneMedi frontends still using the original menu path.
    */
   public function legacyGenemediHeader(string $langcode): JsonResponse {
-    return $this->view('genemedi-header-' . $langcode);
+    return $this->view('genemedi-header-' . $langcode, 404);
   }
 
   /**
    * Returns the published menu tree in Drupal menu order.
    */
-  public function view(string $menu_name): JsonResponse {
+  public function view(string $menu_name, int $missing_status = 200): JsonResponse {
     if ($this->workspaceManager->hasActiveWorkspace()) {
       throw new NotFoundHttpException();
     }
     $menu = $this->entityTypeManager()->getStorage('menu')->load($menu_name);
-    if (!$menu || $menu->isLocked()) {
+    if ($menu?->isLocked()) {
+      throw new NotFoundHttpException();
+    }
+    if (!$menu) {
       // Let the frontend cache the absence until the menu is created.
-      return new JsonResponse(['menu' => $menu_name, 'items' => NULL], 404, ['Cache-Control' => 'private, no-store']);
+      return new JsonResponse(
+        ['menu' => $menu_name, 'items' => NULL],
+        $missing_status,
+        ['Cache-Control' => 'private, no-store'],
+      );
     }
 
     $parameters = (new MenuTreeParameters())->onlyEnabledLinks()->setMaxDepth(5);
