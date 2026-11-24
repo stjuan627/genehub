@@ -9,7 +9,56 @@ declare(strict_types=1);
 
 use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\menu_link_content\MenuLinkContentInterface;
 use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for menu link forms.
+ */
+function genehub_form_menu_link_content_form_alter(array &$form, FormStateInterface $form_state): void {
+  $link = $form_state->getFormObject()->getEntity();
+  if (!$link instanceof MenuLinkContentInterface || !str_starts_with($link->getMenuName(), 'genemedi-header-')) {
+    return;
+  }
+
+  $options = $link->get('link')->first()?->options['genemedi'] ?? [];
+  $form['genemedi_icon'] = [
+    '#type' => 'textfield',
+    '#title' => t('GeneMedi icon ID'),
+    '#default_value' => $options['icon'] ?? '',
+    '#maxlength' => 100,
+    '#pattern' => '[a-zA-Z0-9_-]*',
+    '#weight' => 1,
+  ];
+  $form['genemedi_badge'] = [
+    '#type' => 'select',
+    '#title' => t('GeneMedi badge'),
+    '#options' => [
+      '' => t('None'),
+      'hot' => t('Hot!'),
+      'new' => t('New!'),
+    ],
+    '#default_value' => $options['badge'] ?? '',
+    '#weight' => 2,
+  ];
+  $form['#entity_builders'][] = 'genehub_build_genemedi_menu_link';
+}
+
+/**
+ * Saves GeneMedi display options alongside the link destination.
+ */
+function genehub_build_genemedi_menu_link(string $entity_type, MenuLinkContentInterface $entity, array $form, FormStateInterface $form_state): void {
+  $link = $entity->get('link')->first();
+  if ($link === NULL) {
+    return;
+  }
+  $options = $link->options ?? [];
+  $options['genemedi'] = [
+    'icon' => (string) $form_state->getValue('genemedi_icon'),
+    'badge' => (string) $form_state->getValue('genemedi_badge'),
+  ];
+  $link->options = $options;
+}
 
 /**
  * Implements hook_form_BASE_FORM_ID_alter() for node forms.

@@ -1,3 +1,14 @@
+genehub.genemedi_header_menu:
+  path: '/genehub/menus/genemedi/header/{langcode}'
+  defaults:
+    _controller: '\Drupal\genehub\Controller\GenemediHeaderMenuController::view'
+  requirements:
+    _access: 'TRUE'
+    langcode: '[a-z]{2,3}(?:-[a-z0-9]{2,8})*'
+  methods: [GET]
+  options:
+    no_cache: TRUE
+
 genehub.products:
   path: '/admin/content/products'
   defaults:
