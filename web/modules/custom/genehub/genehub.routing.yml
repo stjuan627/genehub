@@ -1,7 +1,18 @@
+genehub.menu_v1:
+  path: '/v1/menus/{menu_name}'
+  defaults:
+    _controller: '\Drupal\genehub\Controller\MenuController::view'
+  requirements:
+    _access: 'TRUE'
+    menu_name: '[a-z0-9-]+'
+  methods: [GET]
+  options:
+    no_cache: TRUE
+
 genehub.genemedi_header_menu:
   path: '/genehub/menus/genemedi/header/{langcode}'
   defaults:
-    _controller: '\Drupal\genehub\Controller\GenemediHeaderMenuController::view'
+    _controller: '\Drupal\genehub\Controller\MenuController::legacyGenemediHeader'
   requirements:
     _access: 'TRUE'
     langcode: '[a-z]{2,3}(?:-[a-z0-9]{2,8})*'
