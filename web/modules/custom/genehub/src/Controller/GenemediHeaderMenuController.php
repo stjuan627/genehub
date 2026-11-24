@@ -38,9 +38,12 @@ final class GenemediHeaderMenuController extends ControllerBase {
    */
   public function view(string $langcode): JsonResponse {
     $id = 'genemedi-header-' . $langcode;
-    if ($this->workspaceManager->hasActiveWorkspace()
-      || !$this->entityTypeManager()->getStorage('menu')->load($id)) {
+    if ($this->workspaceManager->hasActiveWorkspace()) {
       throw new NotFoundHttpException();
+    }
+    if (!$this->entityTypeManager()->getStorage('menu')->load($id)) {
+      // Let the frontend cache the absence until the menu is created.
+      return new JsonResponse(['menu' => $id, 'items' => NULL], 404, ['Cache-Control' => 'private, no-store']);
     }
 
     $parameters = (new MenuTreeParameters())->onlyEnabledLinks()->setMaxDepth(5);

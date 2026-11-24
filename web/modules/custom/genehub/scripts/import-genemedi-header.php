@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Imports an ordered JSON Lines export of the legacy English header via Drush.
+ * Imports a GeneMedi header menu from JSON Lines via Drush.
  */
 
 declare(strict_types=1);
@@ -15,7 +15,12 @@ if (!is_readable($path)) {
   throw new InvalidArgumentException('Pass the legacy menu JSON Lines file as an argument.');
 }
 
-$id = 'genemedi-header-en';
+$langcode = $extra[1] ?? 'en';
+$language = \Drupal::languageManager()->getLanguage($langcode);
+if (!preg_match('/\A[a-z]{2,3}(?:-[a-z0-9]{2,8})*\z/', $langcode) || $language === NULL) {
+  throw new InvalidArgumentException('Pass a configured content language.');
+}
+$id = 'genemedi-header-' . $langcode;
 $children = [];
 $seen = [];
 foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
@@ -45,13 +50,13 @@ try {
     if (!Menu::load($id)) {
       Menu::create([
         'id' => $id,
-        'label' => 'GeneMedi header (English)',
-        'langcode' => 'en',
+        'label' => 'GeneMedi header (' . $language->getName() . ')',
+        'langcode' => $langcode,
       ])->save();
     }
 
     $count = 0;
-    $import = function (int $legacyParent, string $parent, int $depth) use (&$import, &$count, $children, $id): void {
+    $import = function (int $legacyParent, string $parent, int $depth) use (&$import, &$count, $children, $id, $langcode): void {
       if ($depth > 5 && !empty($children[$legacyParent])) {
         throw new InvalidArgumentException('The source menu exceeds five levels.');
       }
@@ -75,7 +80,7 @@ try {
         };
         $link = MenuLinkContent::create([
           'menu_name' => $id,
-          'langcode' => 'en',
+          'langcode' => $langcode,
           'title' => $row['label'],
           'link' => [
             'uri' => $uri,
