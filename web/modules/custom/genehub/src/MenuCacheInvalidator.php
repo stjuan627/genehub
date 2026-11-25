@@ -54,13 +54,29 @@ final class MenuCacheInvalidator implements EventSubscriberInterface {
       return;
     }
 
-    $item = $this->queues->get(self::QUEUE, TRUE)->createItem([
+    $this->queueEvent([
       'resource' => 'genemedi-header',
       'lang' => $matches[1],
-      'event_id' => bin2hex(random_bytes(16)),
     ]);
+  }
+
+  /**
+   * Queues a public page or product change by UUID.
+   */
+  public function enqueuePage(string $uuid, string $language, string $resource = 'basic_page'): void {
+    if (str_starts_with($this->url, 'https://') && $this->secret !== '') {
+      $this->queueEvent(['resource' => $resource, 'uuid' => $uuid, 'lang' => $language]);
+    }
+  }
+
+  /**
+   * Records an event for delivery after commit.
+   */
+  private function queueEvent(array $event): void {
+    $event['event_id'] = bin2hex(random_bytes(16));
+    $item = $this->queues->get(self::QUEUE, TRUE)->createItem($event);
     if ($item === FALSE) {
-      $this->logger->error('Unable to queue invalidation for menu @menu.', ['@menu' => $menu]);
+      $this->logger->error('Unable to queue invalidation for @resource.', ['@resource' => $event['resource']]);
       return;
     }
     $this->queued = TRUE;

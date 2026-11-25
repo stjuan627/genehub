@@ -14,6 +14,61 @@ use Drupal\node\NodeInterface;
 use Drupal\system\MenuInterface;
 
 /**
+ * Implements hook_ENTITY_TYPE_insert() for nodes.
+ */
+function genehub_node_insert(NodeInterface $node): void {
+  genehub_invalidate_page($node);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update() for nodes.
+ */
+function genehub_node_update(NodeInterface $node): void {
+  genehub_invalidate_page($node);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete() for nodes.
+ */
+function genehub_node_delete(NodeInterface $node): void {
+  if ($node->bundle() === 'page' && !\Drupal::service('workspaces.manager')->hasActiveWorkspace()) {
+    \Drupal::service('genehub.menu_cache_invalidator')->enqueuePage($node->uuid(), '*');
+  }
+}
+
+/**
+ * Invalidates languages whose public page representation has changed.
+ */
+function genehub_invalidate_page(NodeInterface $node): void {
+  if ($node->bundle() !== 'page' || !$node->isDefaultRevision() || \Drupal::service('workspaces.manager')->hasActiveWorkspace()) {
+    return;
+  }
+  $sender = \Drupal::service('genehub.menu_cache_invalidator');
+  $old = $node->getOriginal();
+  if (!$old || $node->isSyncing()) {
+    $sender->enqueuePage($node->uuid(), '*');
+    return;
+  }
+  foreach ($node->getTranslationLanguages() + $old->getTranslationLanguages() as $lang => $language) {
+    $before = $old->hasTranslation($lang) ? $old->getTranslation($lang) : NULL;
+    $after = $node->hasTranslation($lang) ? $node->getTranslation($lang) : NULL;
+    if (!$before?->isPublished() && !$after?->isPublished()) {
+      continue;
+    }
+    if (!$before || !$after || $before->isPublished() !== $after->isPublished()) {
+      $sender->enqueuePage($node->uuid(), $lang);
+      continue;
+    }
+    foreach (['title', 'body', 'field_meta_description'] as $field) {
+      if ($after->hasField($field) && !$after->get($field)->equals($before->get($field))) {
+        $sender->enqueuePage($node->uuid(), $lang);
+        break;
+      }
+    }
+  }
+}
+
+/**
  * Implements hook_ENTITY_TYPE_insert() for menu links.
  */
 function genehub_menu_link_content_insert(MenuLinkContentInterface $link): void {

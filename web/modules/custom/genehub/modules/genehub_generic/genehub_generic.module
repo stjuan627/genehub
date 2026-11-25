@@ -21,6 +21,7 @@ use Drupal\jsonapi\JsonApiFilter;
  */
 function genehub_generic_product_generic_insert(EntityInterface $entity): void {
   _genehub_generic_sync_product_route($entity);
+  _genehub_generic_invalidate_cache($entity);
 }
 
 /**
@@ -28,6 +29,23 @@ function genehub_generic_product_generic_insert(EntityInterface $entity): void {
  */
 function genehub_generic_product_generic_update(EntityInterface $entity): void {
   _genehub_generic_sync_product_route($entity);
+  _genehub_generic_invalidate_cache($entity);
+}
+
+/**
+ * Implements hook_product_generic_delete().
+ */
+function genehub_generic_product_generic_delete(EntityInterface $entity): void {
+  _genehub_generic_invalidate_cache($entity);
+}
+
+/**
+ * Invalidates all product languages because product fields can be shared.
+ */
+function _genehub_generic_invalidate_cache(EntityInterface $entity): void {
+  if ($entity->isDefaultRevision() && !\Drupal::service('workspaces.manager')->hasActiveWorkspace()) {
+    \Drupal::service('genehub.menu_cache_invalidator')->enqueuePage($entity->uuid(), '*', 'product_generic');
+  }
 }
 
 /**
