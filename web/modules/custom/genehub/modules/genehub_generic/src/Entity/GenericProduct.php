@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\genehub_generic\Entity;
 
-use Drupal\content_translation\ContentTranslationHandler;
+use Drupal\genehub_generic\GenericProductTranslationHandler;
 use Drupal\Core\Entity\Attribute\ContentEntityType;
 use Drupal\Core\Entity\EditorialContentEntityBase;
 use Drupal\Core\Entity\ContentEntityDeleteForm;
@@ -58,7 +58,7 @@ use Drupal\user\EntityOwnerTrait;
       'html' => AdminHtmlRouteProvider::class,
       'revision' => RevisionHtmlRouteProvider::class,
     ],
-    'translation' => ContentTranslationHandler::class,
+    'translation' => GenericProductTranslationHandler::class,
   ],
   links: [
     'collection' => '/admin/content/products/generic',
